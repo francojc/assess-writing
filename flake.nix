@@ -4,24 +4,17 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    # Add llm input since it's not readily available in nixpkgs
-    llm-cli.url = "github:simonw/llm";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-    llm-cli,
     ...
   } @ inputs:
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {inherit system;};
-
-        # --- Dependency Resolution ---
-        # Use the llm-cli flake input directly instead of relying on nixpkgs
-        llmPkg = llm-cli.packages.${system}.default;
 
         # Helper function to create script packages
         mkScript = {
@@ -46,12 +39,12 @@
         writing-extract = mkScript {
           name = "writing-extract";
           src = ./scripts/extract_text_from_image.sh;
-          deps = [llmPkg];
+          deps = [pkgs.llm];
         };
         writing-assess = mkScript {
           name = "writing-assess";
           src = ./scripts/assess_assignment.sh;
-          deps = [llmPkg];
+          deps = [pkgs.llm];
         };
         writing-main = mkScript {
           name = "writing-main";
@@ -91,7 +84,7 @@
             writing-main
             # Dependencies needed by the scripts
             pkgs.imagemagick
-            llmPkg
+            pkgs.llm
           ];
         };
       }
