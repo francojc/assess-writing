@@ -82,9 +82,11 @@
       }
     ) // {
       # Template for initializing new projects
-      templates.project = {
-        path = ./templates/default;
-        description = "A new Writing assignment assessment project";
+      templates = {
+        project = {
+          path = ./templates/default;
+          description = "A new Writing assignment assessment project";
+        };
       };
     };
 }
