@@ -4,21 +4,20 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    # --- IMPORTANT ---
-    # Adjust the URL to point to your actual writing-tools flake
-    # Example (GitHub): writing-tools.url = "github:yourusername/writing-tools";
-    # Example (Local Path during development): writing-tools.url = "path:../writing-tools";
-    writing-tools.url = "github:yourusername/writing-tools"; # <-- CHANGE THIS
+    assess-writing.url = "github:francojc/assess-writing"; # <-- CHANGE THIS
   };
 
-  outputs = { self, nixpkgs, flake-utils, writing-tools }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
+  outputs = {
+    nixpkgs,
+    flake-utils,
+    assess-writing,
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
+        pkgs = import nixpkgs {inherit system;};
         # Get the writing tools for the current system
-        tools = writing-tools.packages.${system};
-      in
-      {
+        tools = assess-writing.packages.${system};
+      in {
         # Development environment for this assessment project
         devShell = pkgs.mkShell {
           # Include the main canvass script and potentially others if needed directly
