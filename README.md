@@ -23,10 +23,10 @@ This repository contains a Nix flake that provides command-line tools and a proj
 
 1.  **Navigate** to the directory where you want to create your new project folder.
 2.  **Run `nix flake init`**, pointing it to this `writing-tools` flake's `project` template.
-    *   **Important:** Replace `<writing-tools-flake-url>` with the actual URL or path to *this* `writing-tools` flake repository.
+    * **Note:** If you fork this repo, replace `<writing-tools-flake-url>` with the actual URL or path to *your* `assess-writing` flake repository.
         *   Example using a GitHub URL:
             ```bash
-            nix flake init -t github:your-username/writing-tools#project ./my-assignment-grading
+            nix flake init -t github:francojc/assess-writing#project ./my-assignment-grading
             ```
         *   Example using a local path (if `writing-tools` is checked out locally):
             ```bash
