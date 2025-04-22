@@ -4,68 +4,68 @@ This repository contains a Nix flake that provides command-line tools and a proj
 
 ## Features
 
-*   **Packaged Scripts:** Provides the core Writing workflow scripts as Nix packages, ensuring their dependencies (like ImageMagick and the `llm` tool) are available:
-    *   `writing-convert`: Converts PDFs to PNGs.
-    *   `writing-extract`: Extracts text from PNGs using an AI model via `llm`.
-    *   `writing-assess`: Assesses extracted text using an AI model, rubric, and assignment description via `llm`.
-    *   `writing-main`: Orchestrates the full pipeline (convert -> extract -> assess) or individual stages.
-*   **Project Template:** Includes a `nix flake init` template to quickly scaffold a new assessment project directory with the necessary structure and configuration.
-*   **Reproducible Environment:** Leverages Nix flakes to ensure a consistent and reproducible environment for running the assessment tools.
+- **Packaged Scripts:** Provides the core Writing workflow scripts as Nix packages, ensuring their dependencies (like ImageMagick and the `llm` tool) are available:
+  - `writing-convert`: Converts PDFs to PNGs.
+  - `writing-extract`: Extracts text from PNGs using an AI model via `llm`.
+  - `writing-assess`: Assesses extracted text using an AI model, rubric, and assignment description via `llm`.
+  - `writing-main`: Orchestrates the full pipeline (convert -> extract -> assess) or individual stages.
+- **Project Template:** Includes a `nix flake init` template to quickly scaffold a new assessment project directory with the necessary structure and configuration.
+- **Reproducible Environment:** Leverages Nix flakes to ensure a consistent and reproducible environment for running the assessment tools.
 
 ## Prerequisites
 
-*   **Nix Package Manager:** Needs to be installed on your system. See [NixOS installation guide](https://nixos.org/download.html). Ensure flake support is enabled.
-*   **Git:** Required for cloning repositories and using the flake template.
-*   **`llm` Tool Configuration:** While the flake provides the `llm` command-line tool, you still need to configure it with your AI provider API keys (e.g., OpenAI, Google Gemini). Refer to the [`llm` documentation](https://llm.datasette.io/en/stable/setup.html#configuring-api-keys). The scripts currently use `gemini-2.0-flash` and assume `llm` is configured appropriately.
-*   **`direnv` (Recommended):** Useful for automatically loading the Nix environment when you `cd` into a project directory.
+- **Nix Package Manager:** Needs to be installed on your system. See [NixOS installation guide](https://nixos.org/download.html). Ensure flake support is enabled.
+- **Git:** Required for cloning repositories and using the flake template.
+- **`llm` Tool Configuration:** While the flake provides the `llm` command-line tool, you still need to configure it with your AI provider API keys (e.g., OpenAI, Google Gemini). Refer to the [`llm` documentation](https://llm.datasette.io/en/stable/setup.html#configuring-api-keys). The scripts currently use `gemini-2.0-flash` and assume `llm` is configured appropriately.
+- **`direnv` (Recommended):** Useful for automatically loading the Nix environment when you `cd` into a project directory.
 
 ## Getting Started: Creating a New Assessment Project
 
-1.  **Navigate** to the directory where you want to create your new project folder.
-2.  **Run `nix flake init`**, pointing it to this `assess-writing` flake's `project` template.
-    * **Note:** If you fork this repo, replace `<writing-tools-flake-url>` with the actual URL or path to *your* `assess-writing` flake repository.
-        *   Example using a GitHub URL:
-            ```bash
-            nix flake init -t github:francojc/assess-writing#project ./my-assignment-grading
-            ```
-        *   Example using a local path (if `assess-writing` is checked out locally):
-            ```bash
-            # Assuming 'assess-writing' is in the parent directory
-            nix flake init -t path:../writing-tools#project ./my-assignment-grading
-            ```
-3.  **Navigate into the new project directory:**
-    ```bash
-    cd ./my-assignment-grading
-    ```
-4.  **Allow `direnv`** to load the environment (if you use `direnv`):
-    ```bash
-    direnv allow
-    ```
-    This command reads the `.envrc` file (which contains `use flake`) and activates the Nix shell defined in the project's `flake.nix`, making the `writing-main` command available. If not using `direnv`, manually enter the environment with `nix develop`.
+1. **Navigate** to the directory where you want to create your new project folder.
+1. **Run `nix flake init`**, pointing it to this `assess-writing` flake's `project` template.
+   - **Note:** If you fork this repo, replace `<writing-tools-flake-url>` with the actual URL or path to *your* `assess-writing` flake repository.
+     - Example using a GitHub URL:
+       ```bash
+       nix flake init -t github:francojc/assess-writing#project ./my-assignment-grading
+       ```
+     - Example using a local path (if `assess-writing` is checked out locally):
+       ```bash
+       # Assuming 'assess-writing' is in the parent directory
+       nix flake init -t path:../writing-tools#project ./my-assignment-grading
+       ```
+1. **Navigate into the new project directory:**
+   ```bash
+   cd ./my-assignment-grading
+   ```
+1. **Allow `direnv`** to load the environment (if you use `direnv`):
+   ```bash
+   direnv allow
+   ```
+   This command reads the `.envrc` file (which contains `use flake`) and activates the Nix shell defined in the project's `flake.nix`, making the `writing-main` command available. If not using `direnv`, manually enter the environment with `nix develop`.
 
 ## Project Workflow
 
 Once your project is initialized:
 
-1.  **Edit Documentation:** Customize the placeholder files in the `docs/` directory:
-    *   `docs/assignment_description.md`: Add the specific description for the assignment being graded.
-    *   `docs/rubric.md`: Add the specific grading rubric.
-2.  **Add Submissions:** Place the student assignment PDF files into the `pdfs/` directory.
-3.  **Run Processing:** Execute the main pipeline script from the project's root directory:
-    ```bash
-    # Run all stages: Convert PDFs -> Extract Text -> Assess Text
-    writing-main
+1. **Edit Documentation:** Customize the placeholder files in the `docs/` directory:
+   - `docs/assignment_description.md`: Add the specific description for the assignment being graded.
+   - `docs/rubric.md`: Add the specific grading rubric.
+1. **Add Submissions:** Place the student assignment PDF files into the `pdfs/` directory.
+1. **Run Processing:** Execute the main pipeline script from the project's root directory:
+   ```bash
+   # Run all stages: Convert PDFs -> Extract Text -> Assess Text
+   writing-main
 
-    # Or run specific stages using flags (see details below)
-    writing-main -C # Only convert PDFs to PNGs
-    writing-main -E # Only extract text from existing PNGs
-    writing-main -A # Only assess existing text files
-    writing-main -CE # Convert and Extract, but don't assess
-    ```
-4.  **Check Outputs:** The script will generate files in the following directories:
-    *   `pngs/`: High-resolution PNG images converted from the PDFs.
-    *   `text/`: Markdown files containing the text extracted from the PNGs.
-    *   `assessment/`: Markdown files containing the AI-generated assessment based on the rubric and description.
+   # Or run specific stages using flags (see details below)
+   writing-main -C # Only convert PDFs to PNGs
+   writing-main -E # Only extract text from existing PNGs
+   writing-main -A # Only assess existing text files
+   writing-main -CE # Convert and Extract, but don't assess
+   ```
+1. **Check Outputs:** The script will generate files in the following directories:
+   - `pngs/`: High-resolution PNG images converted from the PDFs.
+   - `text/`: Markdown files containing the text extracted from the PNGs.
+   - `assessment/`: Markdown files containing the AI-generated assessment based on the rubric and description.
 
 ## Provided Tools: `writing-main`
 
@@ -98,22 +98,22 @@ Example:
 
 The project flake ensures the following core dependencies are available in the environment:
 
-*   **ImageMagick:** Used by `writing-convert` for PDF-to-PNG conversion.
-*   **`llm`:** The command-line tool used by `writing-extract` and `writing-assess` to interact with Large Language Models.
+- **ImageMagick:** Used by `writing-convert` for PDF-to-PNG conversion.
+- **`llm`:** The command-line tool used by `writing-extract` and `writing-assess` to interact with Large Language Models.
 
 Remember to configure `llm` with your API keys separately.
 
 ## `assess-writing` Repository Structure
 
-*   `flake.nix`: Defines the Nix flake, its packages (`writing-*` scripts), the project template, and a development shell for working on the tools themselves.
-*   `scripts/`: Contains the raw Bash scripts (`convert_pdf_to_png.sh`, `extract_text_from_image.sh`, `assess_assignment.sh`, `main.sh`). These are wrapped by the Nix derivations defined in `flake.nix`.
-*   `template/`: Contains the file structure and basic configuration files (`flake.nix`, `.envrc`, `.gitignore`, placeholder `docs/`, `pdfs/`) used by `nix flake init -t ... #project`.
-*   `README.md`: This file.
+- `flake.nix`: Defines the Nix flake, its packages (`writing-*` scripts), the project template, and a development shell for working on the tools themselves.
+- `scripts/`: Contains the raw Bash scripts (`convert_pdf_to_png.sh`, `extract_text_from_image.sh`, `assess_assignment.sh`, `main.sh`). These are wrapped by the Nix derivations defined in `flake.nix`.
+- `template/`: Contains the file structure and basic configuration files (`flake.nix`, `.envrc`, `.gitignore`, placeholder `docs/`, `pdfs/`) used by `nix flake init -t ... #project`.
+- `README.md`: This file.
 
 ## Developing `assess-writing`
 
 If you want to modify the scripts or the flake itself within this `assess-writing` repository:
 
-1.  Clone this repository.
-2.  `cd assess-writing`
-3.  Run `direnv allow` or `nix develop`. This will load the `devShell` defined in `assess-writing/flake.nix`, which includes `shellcheck` and the packaged tools themselves for testing.
+1. Clone this repository.
+1. `cd assess-writing`
+1. Run `direnv allow` or `nix develop`. This will load the `devShell` defined in `assess-writing/flake.nix`, which includes `shellcheck` and the packaged tools themselves for testing.
