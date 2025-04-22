@@ -39,12 +39,12 @@
         writing-extract = mkScript {
           name = "writing-extract";
           src = ./scripts/extract_text_from_image.sh;
-          deps = [pkgs.llm];
+          deps = [pkgs.llm]; # llm provides 'llm'
         };
         writing-assess = mkScript {
           name = "writing-assess";
           src = ./scripts/assess_assignment.sh;
-          deps = [pkgs.llm];
+          deps = [pkgs.llm]; # llm provides 'llm'
         };
         writing-main = mkScript {
           name = "writing-main";
@@ -76,13 +76,11 @@
         devShell = pkgs.mkShell {
           packages = [
             pkgs.bashInteractive
-            pkgs.shellcheck # Good for script development
-            # Include the tools themselves for testing
+            pkgs.shellcheck
             writing-convert
             writing-extract
             writing-assess
             writing-main
-            # Dependencies needed by the scripts
             pkgs.imagemagick
             pkgs.llm
           ];
