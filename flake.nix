@@ -66,12 +66,6 @@
           program = "${writing-main}/bin/writing-main";
         };
 
-        # Template for initializing new projects
-        templates.project = {
-          path = ./templates/project;
-          description = "A new Writing assignment assessment project";
-        };
-
         # A devShell for working *on* writing-tools itself (optional)
         devShell = pkgs.mkShell {
           packages = [
@@ -86,5 +80,11 @@
           ];
         };
       }
-    );
+    ) // {
+      # Template for initializing new projects
+      templates.project = {
+        path = ./templates/project;
+        description = "A new Writing assignment assessment project";
+      };
+    };
 }
