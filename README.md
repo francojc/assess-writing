@@ -22,16 +22,16 @@ This repository contains a Nix flake that provides command-line tools and a proj
 ## Getting Started: Creating a New Assessment Project
 
 1. **Navigate** to the directory where you want to create your new project folder.
-1. **Run `nix flake init`**, pointing it to this `assess-writing` flake's `project` template.
-   - **Note:** If you fork this repo, replace `<writing-tools-flake-url>` with the actual URL or path to *your* `assess-writing` flake repository.
-     - Example using a GitHub URL:
+1. **Create the project directory** using `nix flake new`, pointing it to this `assess-writing` flake's `project` template.
+   - **Note:** Replace `<destination_directory>` with the name you want for your project folder (e.g., `./my-assignment-grading`). If you fork this repo, replace `github:francojc/assess-writing` with the actual URL or path to *your* `assess-writing` flake repository.
+     - Example using the main GitHub URL:
        ```bash
-       nix flake init -t github:francojc/assess-writing#project ./my-assignment-grading
+       nix flake new ./my-assignment-grading -t github:francojc/assess-writing#project
        ```
      - Example using a local path (if `assess-writing` is checked out locally):
        ```bash
-       # Assuming 'assess-writing' is in the parent directory
-       nix flake init -t path:../writing-tools#project ./my-assignment-grading
+       # Assuming 'assess-writing' is in the '../assess-writing' directory relative to your current location
+       nix flake new ./my-assignment-grading -t path:../assess-writing#project
        ```
 1. **Navigate into the new project directory:**
    ```bash
