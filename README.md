@@ -1,4 +1,4 @@
-# Writing Tools
+# Assess Writing
 
 This repository contains a Nix flake that provides command-line tools and a project template for the Writing AI-assisted assignment assessment workflow. It aims to streamline the process of converting student PDF submissions, extracting text using AI, and assessing them against a rubric.
 
@@ -22,15 +22,15 @@ This repository contains a Nix flake that provides command-line tools and a proj
 ## Getting Started: Creating a New Assessment Project
 
 1.  **Navigate** to the directory where you want to create your new project folder.
-2.  **Run `nix flake init`**, pointing it to this `writing-tools` flake's `project` template.
+2.  **Run `nix flake init`**, pointing it to this `assess-writing` flake's `project` template.
     * **Note:** If you fork this repo, replace `<writing-tools-flake-url>` with the actual URL or path to *your* `assess-writing` flake repository.
         *   Example using a GitHub URL:
             ```bash
             nix flake init -t github:francojc/assess-writing#project ./my-assignment-grading
             ```
-        *   Example using a local path (if `writing-tools` is checked out locally):
+        *   Example using a local path (if `assess-writing` is checked out locally):
             ```bash
-            # Assuming 'writing-tools' is in the parent directory
+            # Assuming 'assess-writing' is in the parent directory
             nix flake init -t path:../writing-tools#project ./my-assignment-grading
             ```
 3.  **Navigate into the new project directory:**
@@ -103,17 +103,17 @@ The project flake ensures the following core dependencies are available in the e
 
 Remember to configure `llm` with your API keys separately.
 
-## `writing-tools` Repository Structure
+## `assess-writing` Repository Structure
 
 *   `flake.nix`: Defines the Nix flake, its packages (`writing-*` scripts), the project template, and a development shell for working on the tools themselves.
 *   `scripts/`: Contains the raw Bash scripts (`convert_pdf_to_png.sh`, `extract_text_from_image.sh`, `assess_assignment.sh`, `main.sh`). These are wrapped by the Nix derivations defined in `flake.nix`.
 *   `template/`: Contains the file structure and basic configuration files (`flake.nix`, `.envrc`, `.gitignore`, placeholder `docs/`, `pdfs/`) used by `nix flake init -t ... #project`.
 *   `README.md`: This file.
 
-## Developing `writing-tools`
+## Developing `assess-writing`
 
-If you want to modify the scripts or the flake itself within this `writing-tools` repository:
+If you want to modify the scripts or the flake itself within this `assess-writing` repository:
 
 1.  Clone this repository.
-2.  `cd writing-tools`
-3.  Run `direnv allow` or `nix develop`. This will load the `devShell` defined in `writing-tools/flake.nix`, which includes `shellcheck` and the packaged tools themselves for testing.
+2.  `cd assess-writing`
+3.  Run `direnv allow` or `nix develop`. This will load the `devShell` defined in `assess-writing/flake.nix`, which includes `shellcheck` and the packaged tools themselves for testing.
