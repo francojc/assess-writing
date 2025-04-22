@@ -68,7 +68,7 @@
 
         # Template for initializing new projects
         templates.project = {
-          path = ./template;
+          path = ./templates/project;
           description = "A new Writing assignment assessment project";
         };
 
