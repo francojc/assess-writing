@@ -1,0 +1,10 @@
+# Nix build results
+result*
+
+# Canvass generated files
+pngs/
+text/
+assessment/
+
+# Direnv cache
+.direnv/
