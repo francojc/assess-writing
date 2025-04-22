@@ -1,7 +1,7 @@
 # Nix build results
 result*
 
-# Canvass generated files
+# Writing generated files
 pngs/
 text/
 assessment/

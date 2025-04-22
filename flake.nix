@@ -1,5 +1,5 @@
 {
-  description = "Canvass Tools Flake: Provides scripts and project template for AI assignment assessment";
+  description = "Writing Tools Flake: Provides scripts and project template for AI assignment assessment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -27,60 +27,60 @@
         '';
 
         # Define packaged scripts
-        canvass-convert = mkScript {
-          name = "canvass-convert";
+        writing-convert = mkScript {
+          name = "writing-convert";
           src = ./scripts/convert_pdf_to_png.sh;
           deps = [ pkgs.imagemagick ]; # imagemagick provides 'magick'
         };
-        canvass-extract = mkScript {
-          name = "canvass-extract";
+        writing-extract = mkScript {
+          name = "writing-extract";
           src = ./scripts/extract_text_from_image.sh;
           deps = [ llmPkg ];
         };
-        canvass-assess = mkScript {
-          name = "canvass-assess";
+        writing-assess = mkScript {
+          name = "writing-assess";
           src = ./scripts/assess_assignment.sh;
           deps = [ llmPkg ];
         };
-        canvass-main = mkScript {
-          name = "canvass-main";
+        writing-main = mkScript {
+          name = "writing-main";
           src = ./scripts/main.sh;
           # main script needs access to the others
-          deps = [ canvass-convert canvass-extract canvass-assess ];
+          deps = [ writing-convert writing-extract writing-assess ];
         };
 
       in
       {
         # Packages provided by this flake
         packages = {
-          inherit canvass-convert canvass-extract canvass-assess canvass-main;
-          # Default package when using 'nix run canvass-tools'
-          default = canvass-main;
+          inherit writing-convert writing-extract writing-assess writing-main;
+          # Default package when using 'nix run writing-tools'
+          default = writing-main;
         };
 
         # App provided by this flake (for 'nix run')
         apps.default = {
           type = "app";
-          program = "${canvass-main}/bin/canvass-main";
+          program = "${writing-main}/bin/writing-main";
         };
 
 
         # Template for initializing new projects
         templates.project = {
           path = ./template;
-          description = "A new Canvass assignment assessment project";
+          description = "A new Writing assignment assessment project";
         };
 
-        # A devShell for working *on* canvass-tools itself (optional)
+        # A devShell for working *on* writing-tools itself (optional)
         devShell = pkgs.mkShell {
           packages = [
             pkgs.bashInteractive
             pkgs.shellcheck # Good for script development
             # Include the tools themselves for testing
-            canvass-convert
-            canvass-extract
-            canvass-assess
-            canvass-main
+            writing-convert
+            writing-extract
+            writing-assess
+            writing-main
             # Dependencies needed by the scripts
             pkgs.imagemagick
             llmPkg
