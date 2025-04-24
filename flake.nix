@@ -17,6 +17,12 @@
     perSystem = system: let
       pkgs = import nixpkgs {inherit system;};
 
+      pythonEnv = pkgs.python3.withPackages (ps:
+        with ps; [
+          llm
+          llm-gemini
+        ]);
+
       main-cli = pkgs.stdenv.mkDerivation {
         pname = "main-cli";
         version = "1.0";
@@ -47,7 +53,11 @@
       };
 
       devShells.default = pkgs.mkShell {
-        buildInputs = [main-cli pkgs.bashInteractive];
+        buildInputs = [
+          main-cli
+          pkgs.bashInteractive
+          pythonEnv
+        ];
       };
     };
 
