@@ -9,16 +9,16 @@
     nixpkgs.url = "nixpkgs/nixos-24.05";
 
     # Reference the assess-writing flake itself.
-    # When using `nix flake new -t github:francojc/assess-writing#project ...`,
-    # Nix automatically replaces 'path:..' with the correct flake reference (e.g., 'github:francojc/assess-writing').
-    # If developing locally, 'path:..' points to the parent directory containing the main flake.nix.
-    assess-writing.url = "path:.."; # changed automatically when users pull from GitHub
+    # This fixed reference points to a specific version (tag v2) of the
+    # main assess-writing flake on GitHub, ensuring the project uses a consistent
+    # version of the assessment tools.
+    assess-writing.url = "github:francojc/assessing-writing/v2"; # changed automatically when users pull from GitHub
   };
 
   # Define the outputs provided by this project flake
   outputs = {
-    self,        # Reference to this project's flake
-    nixpkgs,     # The nixpkgs input defined above
+    self, # Reference to this project's flake
+    nixpkgs, # The nixpkgs input defined above
     assess-writing, # The assess-writing flake input defined above
   }: let
     # Determine the user's current system (e.g., x86_64-linux)
