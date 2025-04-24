@@ -56,7 +56,7 @@
     // {
       templates = {
         hand = {
-          path = ./templates/inclass;
+          path = ./templates/hand;
           description = "New project for hand-written submissions";
         };
         canvas = {
