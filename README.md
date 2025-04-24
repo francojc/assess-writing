@@ -22,17 +22,17 @@ This repository contains a Nix flake that provides command-line tools and a proj
 ## Getting Started: Creating a New Assessment Project
 
 1. **Navigate** to the directory where you want to create your new project folder.
-1. **Create the project directory** using `nix flake new`, pointing it to this `assess-writing` flake's `project` template.
-   - **Note:** Replace `<destination_directory>` with the name you want for your project folder (e.g., `./my-assignment-grading`). If you fork this repo, replace `github:francojc/assess-writing` with the actual URL or path to *your* `assess-writing` flake repository.
-     - Example using the main GitHub URL:
-       ```bash
-       nix flake new ./my-assignment-grading -t github:francojc/assess-writing#project
-       ```
-     - Example using a local path (if `assess-writing` is checked out locally):
-       ```bash
-       # Assuming 'assess-writing' is in the '../assess-writing' directory relative to your current location
-       nix flake new ./my-assignment-grading -t path:../assess-writing#project
-       ```
+1. **Create the project directory** using `nix flake new`, pointing it to this `assess-writing` flake's `project` template.\
+   Note: Replace `<destination_directory>` with the name you want for your project folder (e.g., `./my-assignment-grading`). If you fork this repo, replace `github:francojc/assess-writing` with the actual URL or path to *your* `assess-writing` flake repository.
+   - Example using the main GitHub URL:
+     ```bash
+     nix flake new ./my-assignment-grading -t github:francojc/assess-writing#project
+     ```
+   - Example using a local path (if `assess-writing` is checked out locally):
+     ```bash
+     # Assuming 'assess-writing' is in the '../assess-writing' directory relative to your current location
+     nix flake new ./my-assignment-grading -t path:../assess-writing#project
+     ```
 1. **Navigate into the new project directory:**
    ```bash
    cd ./my-assignment-grading
@@ -52,6 +52,7 @@ Once your project is initialized:
    - `docs/rubric.md`: Add the specific grading rubric.
 1. **Add Submissions:** Place the student assignment PDF files into the `pdfs/` directory.
 1. **Run Processing:** Execute the main pipeline script from the project's root directory:
+
    ```bash
    # Run all stages: Convert PDFs -> Extract Text -> Assess Text
    writing-main
@@ -61,7 +62,9 @@ Once your project is initialized:
    writing-main -E # Only extract text from existing PNGs
    writing-main -A # Only assess existing text files
    writing-main -CE # Convert and Extract, but don't assess
+
    ```
+
 1. **Check Outputs:** The script will generate files in the following directories:
    - `pngs/`: High-resolution PNG images converted from the PDFs.
    - `text/`: Markdown files containing the text extracted from the PNGs.
