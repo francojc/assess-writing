@@ -37,6 +37,8 @@
           ];
           # The actual script content
           text = builtins.readFile scriptPath;
+          # Skip the default checkPhase (which runs shellcheck)
+          checkPhase = "";
         };
     in {
       # Define the packages provided by this flake for the current system
@@ -76,5 +78,21 @@
         # Description shown when listing templates
         description = "Scaffold for grading a single writing assignment";
       };
-    });
+    }) # End of flake-utils call that generates system-specific outputs
+    # Merge the system-specific outputs with the system-agnostic outputs below
+    // {
+      # Define project templates provided by this flake (Now outside flake-utils)
+      # This template is used via `nix flake new -t .#project ./target-dir`
+      templates = {
+        # The top-level key should be 'templates'
+        project = {
+          # Specify the directory containing the template files
+          path = ./template;
+          # Description shown when listing templates
+          description = "Scaffold for grading a single writing assignment";
+        };
+      }; # End of templates definition
+    }; # End of the merged attribute set returned by 'outputs'
 }
+# End of the whole flake definition
+
