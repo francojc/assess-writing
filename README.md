@@ -48,9 +48,12 @@ This repository contains a Nix flake that provides command-line tools and a proj
 Once your project is initialized:
 
 1. **Edit Documentation:** Customize the placeholder files in the `docs/` directory:
+
    - `docs/assignment_description.md`: Add the specific description for the assignment being graded.
    - `docs/rubric.md`: Add the specific grading rubric.
+
 1. **Add Submissions:** Place the student assignment PDF files into the `pdfs/` directory.
+
 1. **Run Processing:** Execute the main pipeline script from the project's root directory:
 
    ```bash
@@ -66,6 +69,7 @@ Once your project is initialized:
    ```
 
 1. **Check Outputs:** The script will generate files in the following directories:
+
    - `pngs/`: High-resolution PNG images converted from the PDFs.
    - `text/`: Markdown files containing the text extracted from the PNGs.
    - `assessment/`: Markdown files containing the AI-generated assessment based on the rubric and description.

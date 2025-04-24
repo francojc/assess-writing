@@ -9,10 +9,10 @@
     nixpkgs.url = "nixpkgs/nixos-24.05";
 
     # Reference the assess-writing flake itself.
-    # This fixed reference points to a specific version (tag v2) of the
+    # This fixed reference points to a specific version
     # main assess-writing flake on GitHub, ensuring the project uses a consistent
     # version of the assessment tools.
-    assess-writing.url = "github:francojc/assessing-writing/v2"; # changed automatically when users pull from GitHub
+    assess-writing.url = "github:francojc/assessing-writing";
   };
 
   # Define the outputs provided by this project flake
