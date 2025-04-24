@@ -1,72 +1,79 @@
+# This flake provides command-line tools and a project template for the
+# Writing AI-assisted assignment assessment workflow. It aims to streamline
+# the process of converting student PDF submissions, extracting text using AI,
+# and assessing them against a rubric.
 {
   description = "AI-assisted writing assessment tools + project template";
 
   inputs = {
+    # Define the Nix Packages collection version to use for dependencies
     nixpkgs.url = "nixpkgs/nixos-24.05"; # or your preferred channel
+    # Utility library to easily support multiple systems (linux, macos)
     flake-utils.url = "github:numtide/flake-utils";
-    # Optional: use an overlay pin if `llm` isn’t in nixpkgs yet
-    llm-src.url = "github:simonw/llm";
   };
 
+  # The outputs function defines what the flake provides (packages, apps, shells, etc.)
   outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-    llm-src,
+    self, # Reference to this flake itself
+    nixpkgs, # The nixpkgs input defined above
+    flake-utils, # The flake-utils input defined above
   }:
+  # Use flake-utils to define outputs for each common system (x86_64-linux, aarch64-linux, x86_64-darwin, aarch64-darwin)
     flake-utils.lib.eachDefaultSystem (system: let
+      # Create a nixpkgs instance for the specific system
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [
-          (final: prev: {
-            llm = prev.python3Packages.buildPythonPackage {
-              pname = "llm";
-              version = "git";
-              src = llm-src;
-              propagatedBuildInputs = with prev.python3Packages; [
-                click
-                httpx
-                jinja2
-                pydantic
-                rich
-              ];
-              doCheck = false;
-            };
-          })
-        ];
       };
 
-      # Helper to avoid repetition
+      # Define a helper function to reduce repetition when creating script packages
       mkTool = name: scriptPath:
+      # writeShellApplication creates a simple wrapper around a shell script
         pkgs.writeShellApplication {
-          inherit name;
-          runtimeInputs = with pkgs; [imagemagick llm];
+          inherit name; # The name of the command (e.g., "writing-convert")
+          # Specify runtime dependencies needed by the script
+          runtimeInputs = with pkgs; [
+            imagemagick # For PDF conversion
+            llm # For AI interaction
+          ];
+          # The actual script content
           text = builtins.readFile scriptPath;
         };
     in {
+      # Define the packages provided by this flake for the current system
       packages = {
+        # Package the PDF conversion script
         writing-convert = mkTool "writing-convert" ./scripts/convert_pdf_to_png.sh;
+        # Package the text extraction script
         writing-extract = mkTool "writing-extract" ./scripts/extract_text_from_image.sh;
+        # Package the assessment script
         writing-assess = mkTool "writing-assess" ./scripts/assess_assignment.sh;
+        # Package the main orchestration script
         writing-main = mkTool "writing-main" ./scripts/main.sh;
 
+        # Set the default package when referring to the flake (e.g., `nix build .`)
         default = self.packages.${system}.writing-main;
       };
 
-      # Nice dev shell with common tooling
+      # Define development shells provided by this flake
+      # This shell is for *developing the assessment tools themselves* within this repository
       devShells.default = pkgs.mkShell {
+        # List packages available in the development shell
         buildInputs = with pkgs; [
-          shellcheck
-          shfmt
-          llm
-          imagemagick
-          self.packages.${system}.writing-main # include the packaged tools
+          shellcheck # Linter for shell scripts
+          shfmt # Formatter for shell scripts
+          llm # Include llm for testing interaction
+          imagemagick # Include imagemagick for testing conversion
+          # Include the packaged tools themselves for easy testing during development
+          self.packages.${system}.writing-main
         ];
       };
 
-      # nix flake init -t github:francojc/assess-writing#project
+      # Define project templates provided by this flake
+      # This template is used via `nix flake new -t .#project ./target-dir`
       templates.project = {
+        # Specify the directory containing the template files
         path = ./template;
+        # Description shown when listing templates
         description = "Scaffold for grading a single writing assignment";
       };
     });
