@@ -1,8 +1,18 @@
 {
   description = "Single-assignment writing assessment project";
-
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.nixos.org/"
+      # "https://nix-community.cachix.org"
+      # "https://nixpkgs-python.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      # keys published by the cache owners
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-24.11";
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     assess-writing.url = "github:francojc/assess-writing";
   };
 

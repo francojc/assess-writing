@@ -1,9 +1,18 @@
 {
   description = "AI-assisted writing assessment tools + project template";
-
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.nixos.org/"
+      # "https://nix-community.cachix.org"
+      # "https://nixpkgs-python.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      # keys published by the cache owners
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   inputs = {
-    # New channel
-    nixpkgs.url = "nixpkgs/nixos-24.11";
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -18,7 +27,10 @@
       mkTool = name: scriptPath:
         pkgs.writeShellApplication {
           inherit name;
-          runtimeInputs = with pkgs; [imagemagick llm];
+          runtimeInputs = with pkgs; [
+            imagemagick
+            python312Packages.llm
+          ];
           text = builtins.readFile scriptPath;
         };
     in {
@@ -38,7 +50,8 @@
           shellcheck
           shfmt
           imagemagick
-          llm
+          python312Packages.llm
+          python312Packages.llm-gemini
           self.packages.${system}.writing-main
         ];
       };
