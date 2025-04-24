@@ -14,45 +14,45 @@
   }: let
     systems = flake-utils.lib.defaultSystems;
   in
-    flake-utils.lib.eachSystem systems (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
-        main-cli = pkgs.stdenv.mkDerivation {
-          pname = "main-cli";
-          version = "1.0";
-          src = ./scripts;
+    flake-utils.lib.eachSystem systems (system: let
+      pkgs = import nixpkgs {inherit system;};
 
-          nativeBuildInputs = [pkgs.makeWrapper];
-          buildInputs = [pkgs.jq pkgs.imagemagick];
+      main-cli = pkgs.stdenv.mkDerivation {
+        pname = "main-cli";
+        version = "1.0";
+        src = ./scripts;
 
-          installPhase = ''
-            mkdir -p $out/bin
+        nativeBuildInputs = [pkgs.makeWrapper];
+        buildInputs = [pkgs.jq pkgs.imagemagick];
 
-            # Install all scripts
-            for f in *.sh; do
-              chmod +x $f
-              cp $f $out/bin/
-            done
+        installPhase = ''
+          mkdir -p $out/bin
+          for f in *.sh; do
+            chmod +x $f
+            cp $f $out/bin/
+          done
+          wrapProgram $out/bin/main.sh \
+            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.jq pkgs.imagemagick]}
+        '';
 
-            # Wrap main.sh only (assumes it's the entry point)
-            wrapProgram $out/bin/main.sh \
-              --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.jq pkgs.imagemagick]}
-          '';
-
-          meta = {
-            description = "Main CLI entry point for project scripts";
-            mainProgram = "main.sh";
-          };
+        meta = {
+          description = "Main CLI entry point for project scripts";
+          mainProgram = "main.sh";
         };
-      in {
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            main-cli
-            pkgs.imagemagick
-          ];
-        };
-      }
-    )
+      };
+    in {
+      packages = {
+        default = main-cli;
+        main-cli = main-cli;
+      };
+
+      devShells.default = pkgs.mkShell {
+        buildInputs = [
+          main-cli
+          pkgs.bashInteractive
+        ];
+      };
+    })
     // {
       templates = {
         hand = {

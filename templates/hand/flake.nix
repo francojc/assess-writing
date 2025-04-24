@@ -20,6 +20,7 @@
       devShells.default = pkgs.mkShell {
         buildInputs = [
           assess-writing.packages.${system}.main-cli
+          pkgs.bashInteractive
         ];
       };
     });
