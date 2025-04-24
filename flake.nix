@@ -7,7 +7,7 @@
 
   inputs = {
     # Define the Nix Packages collection version to use for dependencies
-    nixpkgs.url = "nixpkgs/nixos-24.05"; # or your preferred channel
+    nixpkgs.url = "nixpkgs/nixos-24.11"; # or your preferred channel
     # Utility library to easily support multiple systems (linux, macos)
     flake-utils.url = "github:numtide/flake-utils";
   };

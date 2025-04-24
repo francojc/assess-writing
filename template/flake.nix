@@ -6,7 +6,7 @@
   inputs = {
     # Use the same Nix Packages collection as the main assess-writing tool
     # to ensure dependency consistency.
-    nixpkgs.url = "nixpkgs/nixos-24.05";
+    nixpkgs.url = "nixpkgs/nixos-24.11";
 
     # Reference the assess-writing flake itself.
     # This fixed reference points to a specific version
