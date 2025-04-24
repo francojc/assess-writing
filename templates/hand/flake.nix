@@ -22,7 +22,6 @@
           llm
           llm-gemini
         ]);
-
     in {
       devShells.default = pkgs.mkShell {
         buildInputs = [
@@ -30,6 +29,10 @@
           pkgs.bashInteractive
           pythonEnv # Add Python environment
         ];
+        shellHook = ''
+          echo "Welcome to the development shell!"
+          echo "Ensure that you set up `llm` and `llm-gemini` correctly."
+        '';
       };
     });
 }
