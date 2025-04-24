@@ -84,9 +84,9 @@ docs_dir="./docs"
 # Check for essential project directories and files
 if [ ! -d "$pdf_dir" ] || [ ! -d "$docs_dir" ] || \
    [ ! -f "$docs_dir/rubric.md" ] || \
-   [ ! -f "$docs_dir/assignment_description.md" ]; then
+   [ ! -f "$docs_dir/assignment.md" ]; then
   echo "Error: Project structure incomplete or not run from project root." >&2
-  echo "Expected: ./pdfs/, ./docs/, ./docs/rubric.md, ./docs/assignment_description.md" >&2
+  echo "Expected: ./pdfs/, ./docs/, ./docs/rubric.md, ./docs/assignment.md" >&2
   echo "Initialize the project using: nix flake init -t <writing-tools-flake-url>#project" >&2
   exit 1
 fi
@@ -127,7 +127,7 @@ if [ "$convert_flag" = true ]; then
   for pdf_file in "$pdf_dir"/*.pdf; do
     echo "Converting: '$pdf_file'"
     # Call the Nix-packaged script (assumes it's in PATH via devShell)
-    writing-convert "$pdf_file"
+    convert "$pdf_file"
     if [ $? -ne 0 ]; then
       echo "Error converting '$pdf_file'." >&2
       ((error_count++))
@@ -161,7 +161,7 @@ if [ "$extract_flag" = true ]; then
   shopt -s nullglob
   for png_file in "$png_dir"/*.png; do
     echo "Extracting text from: '$png_file'"
-    writing-extract "$png_file"
+    extract "$png_file"
     if [ $? -ne 0 ]; then
       echo "Error extracting text from '$png_file'." >&2
        ((error_count++))
@@ -193,7 +193,7 @@ if [ "$assess_flag" = true ]; then
   shopt -s nullglob
   for text_file in "$text_dir"/*.md; do
     echo "Assessing assignment: '$text_file'"
-    writing-assess "$text_file"
+    assess "$text_file"
     if [ $? -ne 0 ]; then
       echo "Error assessing '$text_file'." >&2
        ((error_count++))
