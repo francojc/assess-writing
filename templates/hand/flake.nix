@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    assess-writing.url = "github:francojc/assess-writing";
+    assess-writing.url = "self";
   };
 
   outputs = {
