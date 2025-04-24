@@ -11,11 +11,15 @@
     nixpkgs,
     assess-writing,
   }: let
-    system = "aarch64-darwin";
-    pkgs = import nixpkgs {inherit system;};
+    systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
+    forAllSystems = nixpkgs.lib.genAttrs systems;
   in {
-    devShell.${system} = pkgs.mkShell {
-      buildInputs = [assess-writing.packages.${system}.writing-main];
-    };
+    devShells = forAllSystems (system: let
+      pkgs = import nixpkgs {inherit system;};
+    in {
+      default = pkgs.mkShell {
+        buildInputs = [assess-writing.packages.${system}.writing-main];
+      };
+    });
   };
 }
