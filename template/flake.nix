@@ -14,7 +14,7 @@
     system = builtins.currentSystem;
     pkgs = import nixpkgs {inherit system;};
   in {
-    devShells.${system}.default = pkgs.mkShell {
+    devShell.${system} = pkgs.mkShell {
       buildInputs = [assess-writing.packages.${system}.writing-main];
     };
   };
