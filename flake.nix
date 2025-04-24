@@ -23,7 +23,7 @@
         src = ./scripts;
 
         nativeBuildInputs = [pkgs.makeWrapper];
-        buildInputs = [pkgs.jq pkgs.imagemagick];
+        buildInputs = [pkgs.imagemagick];
 
         installPhase = ''
           mkdir -p $out/bin
@@ -32,7 +32,7 @@
             cp $f $out/bin/
           done
           wrapProgram $out/bin/main.sh \
-            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.jq pkgs.imagemagick]}
+            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.imagemagick]}
         '';
 
         meta = {
@@ -48,6 +48,13 @@
 
       devShells.default = pkgs.mkShell {
         buildInputs = [main-cli pkgs.bashInteractive];
+      };
+
+      hand = pkgs.mkShell {
+        buildInputs = [main-cli pkgs.bashInteractive];
+        shellHook = ''
+          echo "Welcome to the hand-written submission shell!"
+        '';
       };
     };
 
