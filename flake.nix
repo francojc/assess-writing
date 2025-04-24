@@ -49,13 +49,6 @@
       devShells.default = pkgs.mkShell {
         buildInputs = [main-cli pkgs.bashInteractive];
       };
-
-      hand = pkgs.mkShell {
-        buildInputs = [main-cli pkgs.bashInteractive];
-        shellHook = ''
-          echo "Welcome to the hand-written submission shell!"
-        '';
-      };
     };
 
     allSystems = flake-utils.lib.eachSystem systems perSystem;
