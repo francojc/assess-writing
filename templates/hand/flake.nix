@@ -16,20 +16,11 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-
-      # Define Python environment with llm and llm-gemini
-      pythonEnv = pkgs.python313.withPackages (ps:
-        with ps; [
-          llm
-          llm-gemini
-        ]);
-
     in {
       devShells.default = pkgs.mkShell {
         buildInputs = [
           assess-writing.packages.${system}.main-cli
           pkgs.bashInteractive
-          pythonEnv # Add Python environment
         ];
       };
     });
