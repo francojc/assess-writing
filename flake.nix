@@ -13,8 +13,8 @@
     ...
   }: let
     systems = flake-utils.lib.defaultSystems;
-  in
-    flake-utils.lib.eachSystem systems (system: let
+
+    perSystem = system: let
       pkgs = import nixpkgs {inherit system;};
 
       main-cli = pkgs.stdenv.mkDerivation {
@@ -47,12 +47,13 @@
       };
 
       devShells.default = pkgs.mkShell {
-        buildInputs = [
-          main-cli
-          pkgs.bashInteractive
-        ];
+        buildInputs = [main-cli pkgs.bashInteractive];
       };
-    })
+    };
+
+    allSystems = flake-utils.lib.eachSystem systems perSystem;
+  in
+    allSystems
     // {
       templates = {
         hand = {
