@@ -1,92 +1,73 @@
 {
-  description = "Writing Tools Flake: Provides scripts and project template for AI assignment assessment";
+  description = "AI-assisted writing assessment tools + project template";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "nixpkgs/nixos-24.05"; # or your preferred channel
     flake-utils.url = "github:numtide/flake-utils";
+    # Optional: use an overlay pin if `llm` isn’t in nixpkgs yet
+    llm-src.url = "github:simonw/llm";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-    ...
-  } @ inputs:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
-
-        # Helper function to create script packages
-        mkScript = {
-          name,
-          src,
-          deps ? [],
-        }:
-          pkgs.writeScriptBin name ''
-            #!${pkgs.bash}/bin/bash
-            # Ensure coreutils and dependencies are in PATH
-            export PATH=${pkgs.lib.makeBinPath ([pkgs.coreutils] ++ deps)}:$PATH
-            # Execute the actual script content
-            ${builtins.readFile src} "$@"
-          '';
-
-        # Define packaged scripts
-        writing-convert = mkScript {
-          name = "writing-convert";
-          src = ./scripts/convert_pdf_to_png.sh;
-          deps = [pkgs.imagemagick]; # imagemagick provides 'magick'
-        };
-        writing-extract = mkScript {
-          name = "writing-extract";
-          src = ./scripts/extract_text_from_image.sh;
-          deps = [pkgs.llm]; # llm provides 'llm'
-        };
-        writing-assess = mkScript {
-          name = "writing-assess";
-          src = ./scripts/assess_assignment.sh;
-          deps = [pkgs.llm]; # llm provides 'llm'
-        };
-        writing-main = mkScript {
-          name = "writing-main";
-          src = ./scripts/main.sh;
-          # main script needs access to the others
-          deps = [writing-convert writing-extract writing-assess];
-        };
-      in {
-        # Packages provided by this flake
-        packages = {
-          inherit writing-convert writing-extract writing-assess writing-main;
-          # Default package when using 'nix run writing-tools'
-          default = writing-main;
-        };
-
-        # App provided by this flake (for 'nix run')
-        apps.default = {
-          type = "app";
-          program = "${writing-main}/bin/writing-main";
-        };
-
-        # A devShell for working *on* writing-tools itself (optional)
-        devShell = pkgs.mkShell {
-          packages = [
-            pkgs.bashInteractive
-            pkgs.shellcheck
-            writing-convert
-            writing-extract
-            writing-assess
-            writing-main
-            pkgs.imagemagick
-            pkgs.llm
-          ];
-        };
-      }
-    ) // {
-      # Template for initializing new projects
-      templates = {
-        project = {
-          path = ./templates/default;
-          description = "A new Writing assignment assessment project";
-        };
+    llm-src,
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          (final: prev: {
+            llm = prev.python3Packages.buildPythonPackage {
+              pname = "llm";
+              version = "git";
+              src = llm-src;
+              propagatedBuildInputs = with prev.python3Packages; [
+                click
+                httpx
+                jinja2
+                pydantic
+                rich
+              ];
+              doCheck = false;
+            };
+          })
+        ];
       };
-    };
+
+      # Helper to avoid repetition
+      mkTool = name: scriptPath:
+        pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = with pkgs; [imagemagick llm];
+          text = builtins.readFile scriptPath;
+        };
+    in {
+      packages = {
+        writing-convert = mkTool "writing-convert" ./scripts/convert_pdf_to_png.sh;
+        writing-extract = mkTool "writing-extract" ./scripts/extract_text_from_image.sh;
+        writing-assess = mkTool "writing-assess" ./scripts/assess_assignment.sh;
+        writing-main = mkTool "writing-main" ./scripts/main.sh;
+
+        default = self.packages.${system}.writing-main;
+      };
+
+      # Nice dev shell with common tooling
+      devShells.default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          shellcheck
+          shfmt
+          llm
+          imagemagick
+          self.packages.${system}.writing-main # include the packaged tools
+        ];
+      };
+
+      # nix flake init -t github:francojc/assess-writing#project
+      templates.project = {
+        path = ./template;
+        description = "Scaffold for grading a single writing assignment";
+      };
+    });
 }
