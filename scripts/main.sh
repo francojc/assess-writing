@@ -4,7 +4,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Orchestrates Writing PDF processing pipeline within an initialized project.
+Orchestrates Writing assessment processing pipeline within an initialized project.
 
 Options:
   -C, --convert   Run PDF to PNG conversion only
@@ -65,11 +65,11 @@ else
   else
       # If flags were parsed but none were set (e.g., only invalid options entered before corrected)
       # Or if only -h was passed initially. Recheck if any valid processing flag is set.
-       if [ $# -ne 0 ] || ( [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag" = false ] ); then
-           echo "No processing stage selected." >&2
-           usage
-           exit 1
-       fi
+      if [ $# -ne 0 ] || { [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag" = false ]; }; then
+        echo "No processing stage selected." >&2
+        usage
+        exit 1
+      fi
   fi
 fi
 
@@ -126,7 +126,7 @@ if [ "$convert_flag" = true ]; then
     echo "Converting: '$pdf_file'"
     # Call the Nix-packaged script (assumes it's in PATH via devShell)
     do-convert.sh "$pdf_file"
-    if [ $? -ne 0 ]; then
+    if ! do-convert.sh "$pdf_file"; then
       echo "Error converting '$pdf_file'." >&2
       ((error_count++))
     else
@@ -160,7 +160,7 @@ if [ "$extract_flag" = true ]; then
   for png_file in "$png_dir"/*.png; do
     echo "Extracting text from: '$png_file'"
     do-extract.sh "$png_file"
-    if [ $? -ne 0 ]; then
+    if do-extract.sh "$png_file"; then
       echo "Error extracting text from '$png_file'." >&2
        ((error_count++))
     else
@@ -192,7 +192,7 @@ if [ "$assess_flag" = true ]; then
   for text_file in "$text_dir"/*.md; do
     echo "Assessing assignment: '$text_file'"
     do-assess.sh "$text_file"
-    if [ $? -ne 0 ]; then
+    if do-assess.sh "$text_file"; then
       echo "Error assessing '$text_file'." >&2
        ((error_count++))
     else
