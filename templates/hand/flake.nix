@@ -21,6 +21,9 @@
         with ps; [
           llm
           llm-gemini
+          llm-openai-plugin
+          llm-ollama
+          llm-anthropic
         ]);
     in {
       devShells.default = pkgs.mkShell {
@@ -31,7 +34,7 @@
         ];
         shellHook = ''
           echo "Welcome to the development shell!"
-          echo "Ensure that you set up 'llm' and 'llm-gemini' correctly."
+          echo "Ensure that you set up 'llm' correctly."
         '';
       };
     });

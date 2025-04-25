@@ -21,6 +21,9 @@
         with ps; [
           llm
           llm-gemini
+          llm-openai-plugin
+          llm-ollama
+          llm-anthropic
         ]);
 
       main-cli = pkgs.stdenv.mkDerivation {

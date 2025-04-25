@@ -34,10 +34,16 @@ direnv allow
 > This assumes that you have [direnv](https://direnv.net/) installed. If you don't have direnv installed, you can run the following command to build the development environment: 
 >
 
-    ```sh
-    nix develop
-    ```
+```sh
+nix develop
+```
 
+## Use of `llm` 
+
+This flake uses the `llm` package to perform the pre-assessment. The `llm` package is a scriptable interface to various LLM services (e.g. Anthropic, Gemini, Ollama, OpenAI, etc.). You will need to set up your own API keys and select your default model to use prior to running the pre-assessment. Consult [the `llm` documentation](https://llm.datasette.io/) for more information on how to do this.
+
+
+## Structure 
 
 The structure of this resource is as follows: 
 
