@@ -73,7 +73,6 @@ else
   fi
 fi
 
-
 # --- Project Structure and Input Checks ---
 pdf_dir="./pdfs"
 png_dir="./pngs"
