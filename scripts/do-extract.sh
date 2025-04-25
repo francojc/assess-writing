@@ -53,6 +53,6 @@ filename=$(basename "$input_png" .png)
 output_txt="text/${filename}.md"
 
 # Extract the text from the image using llm and save it to a markdown file in the text/ directory
-llm -m gemini-2.0-flash "Extract the text from this image and format the output as markdown. Note: Do not include the markdown code fences." -a "$input_png" > "$output_txt"
+llm "Extract the text from this image and format the output as markdown. Note: Do not include the markdown code fences." -a "$input_png" > "$output_txt"
 
 echo "Successfully extracted text from '$input_png' and saved it to '$output_txt'."
