@@ -10,7 +10,7 @@ Usage: $(basename "$0") [OPTIONS] <input_pdf_file>
 Options:
   -h, --help    Show this help message and exit
 
-Converts PDF files to PNG format using imagemagick. 
+Converts PDF files to PNG format using imagemagick.
 
 Requirements:
   - imagemagick must be installed
@@ -61,3 +61,4 @@ output_png="pngs/${filename}.png"
 magick -density 300 "$input_pdf" -append "$output_png"
 
 echo "Successfully converted '$input_pdf' to '$output_png'"
+

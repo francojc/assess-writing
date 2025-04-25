@@ -115,7 +115,6 @@ if [ "$processing_requested" = false ]; then
     exit 0
 fi
 
-
 # --- Processing Stages ---
 
 # 1. Convert PDFs to PNGs
@@ -127,7 +126,7 @@ if [ "$convert_flag" = true ]; then
   for pdf_file in "$pdf_dir"/*.pdf; do
     echo "Converting: '$pdf_file'"
     # Call the Nix-packaged script (assumes it's in PATH via devShell)
-    convert "$pdf_file"
+    do-convert "$pdf_file"
     if [ $? -ne 0 ]; then
       echo "Error converting '$pdf_file'." >&2
       ((error_count++))
@@ -161,7 +160,7 @@ if [ "$extract_flag" = true ]; then
   shopt -s nullglob
   for png_file in "$png_dir"/*.png; do
     echo "Extracting text from: '$png_file'"
-    extract "$png_file"
+    do-extract "$png_file"
     if [ $? -ne 0 ]; then
       echo "Error extracting text from '$png_file'." >&2
        ((error_count++))
@@ -193,7 +192,7 @@ if [ "$assess_flag" = true ]; then
   shopt -s nullglob
   for text_file in "$text_dir"/*.md; do
     echo "Assessing assignment: '$text_file'"
-    assess "$text_file"
+    do-assess "$text_file"
     if [ $? -ne 0 ]; then
       echo "Error assessing '$text_file'." >&2
        ((error_count++))
