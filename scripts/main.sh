@@ -6,15 +6,21 @@ Usage: $(basename "$0") [OPTIONS] [SOURCE]
 
 Orchestrates Writing assessment processing pipeline within an initialized project.
 
+  -h, --help      Show this help message
+
 Options:
   -C, --convert   Run conversion step only
   -E, --extract   Run text extraction step only
   -A, --assess    Run assignment assessment only
-  -h, --help      Show this help message
 
 Source:
   -s, --scanned   Process scanned PDFs (default)
   -c, --canvas    Process submissions from Canvas
+
+Source dependent options:
+  '-c, --canvas' as a source requires:
+  --course <course_id>
+  --assignment <assignment_id>
 
 Run multiple stages by combining flags (e.g., -CE).
 By default (no flags), runs all stages (-CEA).
