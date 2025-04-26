@@ -1,24 +1,20 @@
 #!/usr/bin/env bash
 
-# This script converts a PDF file to a PNG file using imagemagick's convert.
-# The output PNG file is saved in the pngs/ directory with the same filename as the input PDF file.
-
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [OPTIONS] <input_pdf_file>
+Usage: $(basename "$0") <input_file>
 
-Options:
-  -h, --help    Show this help message and exit
+Converts various file types:
+  - PDF (.pdf)      -> PNG (.png) into ./images/ (requires imagemagick)
+  - DOCX (.docx)    -> Markdown (.md) into ./text/ (requires pandoc)
+  - HTML (.html)    -> Markdown (.md) into ./text/ (requires pandoc)
 
-Converts PDF files to PNG format using imagemagick.
-
-Requirements:
-  - imagemagick must be installed
-  - Input file must be a valid PDF
+Outputs are named based on the input filename.
 
 Example:
-  $0 my_document.pdf
-
+  $(basename "$0") my_document.pdf
+  $(basename "$0") report.docx
+  $(basename "$0") submission.html
 EOF
 }
 
@@ -28,37 +24,85 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   exit 0
 fi
 
-# Check if imagemagick's convert is installed
-if ! command -v magick &> /dev/null; then
-  echo "Error: imagemagick is not installed. Please install it to use this script."
-  exit 1
-fi
-
 # Check if an input file is provided
 if [ -z "$1" ]; then
+  echo "Error: Input file not specified." >&2
   usage
   exit 1
 fi
 
-input_pdf="$1"
+input_file="$1"
 
-# Check if the input file exists and is a PDF file
-if [[ ! -f "$input_pdf" || ! "$input_pdf" =~ \.pdf$ ]]; then
-  echo "Error: Input file '$input_pdf' is not a valid PDF file."
+# Check if the input file exists
+if [[ ! -f "$input_file" ]]; then
+  echo "Error: Input file '$input_file' not found." >&2
   exit 1
 fi
 
-# Create the pngs directory if it doesn't exist
-mkdir -p pngs
+# Extract the filename and extension
+filename=$(basename "$input_file")
+extension="${filename##*.}"
+base_name="${filename%.*}"
 
-# Extract the filename without extension
-filename=$(basename "$input_pdf" .pdf)
+# Image output directory
+image_dir="./images"
+# Text output directory
+text_dir="./text"
 
-# Define the output PNG filename and directory
-output_png="pngs/${filename}.png"
-
-# Convert the PDF to PNG using imagemagick's convert and append all pages vertically
-magick -density 300 "$input_pdf" -append "$output_png"
-
-echo "Successfully converted '$input_pdf' to '$output_png'"
-
+# Determine file type and process accordingly
+case "${extension,,}" in # Convert extension to lowercase for comparison
+  pdf)
+    # Check for imagemagick
+    if ! command -v magick &> /dev/null; then
+      echo "Error: imagemagick ('magick' command) not found, required for PDF conversion." >&2
+      exit 1
+    fi
+    mkdir -p "$image_dir"
+    output_png="$image_dir/${base_name}.png"
+    echo "Converting PDF to PNG: '$input_file' -> '$output_png'"
+    if magick -density 300 "$input_file" -append "$output_png"; then
+      echo "Successfully converted '$filename' to '$output_png'"
+    else
+      echo "Error converting '$filename' to PNG." >&2
+      exit 1 # Exit script on conversion error
+    fi
+    ;;
+  docx)
+    # Check for pandoc
+    if ! command -v pandoc &> /dev/null; then
+      echo "Error: pandoc not found, required for DOCX conversion." >&2
+      exit 1
+    fi
+    mkdir -p "$text_dir"
+    output_md="$text_dir/${base_name}.md"
+    echo "Converting DOCX to Markdown: '$input_file' -> '$output_md'"
+    if pandoc "$input_file" -o "$output_md"; then
+       echo "Successfully converted '$filename' to '$output_md'"
+    else
+       echo "Error converting '$filename' to Markdown." >&2
+       exit 1 # Exit script on conversion error
+    fi
+    ;;
+  html)
+    # Check for pandoc
+    if ! command -v pandoc &> /dev/null; then
+      echo "Error: pandoc not found, required for HTML conversion." >&2
+      exit 1
+    fi
+    mkdir -p "$text_dir"
+    output_md="$text_dir/${base_name}.md"
+    echo "Converting HTML to Markdown: '$input_file' -> '$output_md'"
+    # Explicitly specify from HTML to markdown
+    if pandoc "$input_file" -f html -t markdown -o "$output_md"; then
+       echo "Successfully converted '$filename' to '$output_md'"
+    else
+       echo "Error converting '$filename' to Markdown." >&2
+       exit 1 # Exit script on conversion error
+    fi
+    ;;
+  *)
+    echo "Error: Unsupported file type '$extension' for input file '$filename'." >&2
+    echo "Supported types: pdf, docx, html." >&2
+    exit 1
+    ;;
+esac

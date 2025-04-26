@@ -32,7 +32,7 @@
         src = ./scripts;
 
         nativeBuildInputs = [pkgs.makeWrapper];
-        buildInputs = [pkgs.imagemagick];
+        buildInputs = [pkgs.imagemagick pkgs.pandoc];
 
         installPhase = ''
           mkdir -p $out/bin
@@ -41,7 +41,7 @@
             cp $f $out/bin/
           done
           wrapProgram $out/bin/main.sh \
-            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.imagemagick]}
+            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.imagemagick pkgs.pandoc]}
         '';
 
         meta = {
