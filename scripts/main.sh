@@ -8,7 +8,10 @@ Orchestrates Writing assessment processing pipeline within an initialized projec
 
   -h, --help      Show this help message
 
+
+
 Options:
+  -Q, --acquire   Run Canvas acquisition step only
   -C, --convert   Run conversion step only
   -E, --extract   Run text extraction step only
   -A, --assess    Run assignment assessment only
@@ -35,17 +38,25 @@ EOF
 }
 
 # Initialize flags
+acquire_flag=false
 convert_flag=false
 extract_flag=false
 assess_flag=false
 run_all=false
 
+# Canvas specific variables
+course_id_val=""
+assignment_id_val=""
 # Default to scanned workflow
 workflow_source="scanned"
 
 # Parse command line arguments
 while (( $# > 0 )); do
   case "$1" in
+    -Q|--acquire)
+      acquire_flag=true
+      shift
+      ;;
     -C|--convert)
       convert_flag=true
       shift
@@ -66,6 +77,20 @@ while (( $# > 0 )); do
       workflow_source="canvas"
       shift
       ;;
+    --course)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --course requires a value." >&2; usage; exit 1;
+      fi
+      course_id_val="$2"
+      shift 2
+      ;;
+    --assignment)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --assignment requires a value." >&2; usage; exit 1;
+      fi
+      assignment_id_val="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -79,13 +104,23 @@ while (( $# > 0 )); do
 done
 
 # Determine execution mode if no specific flags provided
-if [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag" = false ]; then
+if [ "$acquire_flag" = false ] && [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag" = false ]; then
   run_all=true
+  acquire_flag=true
   convert_flag=true
   extract_flag=true
   assess_flag=true
 fi
 
+# Validate Canvas flags if canvas workflow is selected
+if [[ "$workflow_source" == "canvas" && \
+      ( "$acquire_flag" = true || "$convert_flag" = true || "$extract_flag" = true || "$assess_flag" = true || "$run_all" = true ) ]]; then
+   if [[ -z "$course_id_val" || -z "$assignment_id_val" ]]; then
+     echo "Error: --course and --assignment flags are required for the 'canvas' workflow." >&2
+     usage
+     exit 1
+   fi
+fi
 # --- Project Structure and Input Checks ---
 sub_dir="./submissions"
 image_dir="./images"
@@ -143,6 +178,26 @@ else
 fi
 
 # --- Processing Stages ---
+
+# 0. Acquisition step (Canvas submissions)
+if [ "$acquire_flag" = true ]; then
+  echo "--- Running Acquisition ---"
+  if [ "$workflow_source" = "canvas" ]; then
+    echo "Acquiring Canvas submissions..."
+    export COURSE_ID="$course_id_val"
+    export ASSIGNMENT_ID="$assignment_id_val"
+    if ! do-acquire.sh; then
+      echo "Error acquiring Canvas submissions." >&2
+      exit 1
+    fi
+    echo "Acquisition complete."
+  else
+    echo "Acquisition step is only applicable to the 'canvas' workflow. Skipping."
+  fi
+else
+  echo "--- Skipping Acquisition ---"
+fi
+
 
 # 1. Conversion step (PDFs/Canvas files to PNGs/Markdown)
 # WARN: Need to update. Canvas files may include other formats (docx, HTML, etc.)

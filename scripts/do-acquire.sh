@@ -9,8 +9,12 @@ Options:
 
 Acquires Canvas assignment submissions for a course and saves them.
 Relies on environment variables set by the calling script (e.g., main.sh):
+  Set manually in your environment:
   - CANVAS_API_KEY: Your Canvas API key.
   - CANVAS_BASE_URL: The base URL for your Canvas instance.
+  Set by 'main.sh'
+  - COURSE_ID: The Canvas course ID.
+  - ASSIGNMENT_ID: The Canvas assignment ID.
 
 EOF
 }
@@ -19,10 +23,12 @@ set -euo pipefail
 # Check required environment variables
 : "${CANVAS_API_KEY:?Set CANVAS_API_KEY in your environment.}"
 : "${CANVAS_BASE_URL:?Set CANVAS_BASE_URL in your environment.}"
+: "${COURSE_ID:?Set COURSE_ID in your environment.}"
+: "${ASSIGNMENT_ID:?Set ASSIGNMENT_ID in your environment.}"
 
 # Output directory for submissions
-: "${SUBMISSIONS_DIR:?SUBMISSIONS_DIR must be set, typically by main.sh.}"
-mkdir -p "$SUBMISSIONS_DIR"
+sub_dir="./submissions"
+mkdir -p "$sub_dir"
 
 # Show help if requested
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -82,7 +88,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
       # Sanitize filename: prepend user_id to avoid collisions
       # Replace spaces with underscores in filename for safety
       safe_filename=$(echo "$filename" | tr ' ' '_') # Keep original filename sanitization
-      out_file="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_${safe_filename}"
+      out_file="$sub_dir/${formatted_name}_${user_id}_${safe_filename}"
       echo "    Downloading attachment: $filename..."
       # Use curl -f to fail on server errors, -L to follow redirects
       if curl -f -sS -L -H "Authorization: Bearer $CANVAS_API_KEY" -o "$out_file" "$url"; then
@@ -120,7 +126,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
           fi
         fi
         safe_filename=$(echo "$filename" | tr ' ' '_')
-        out_file="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_canvas_${safe_filename}"
+        out_file="$sub_dir/${formatted_name}_${user_id}_canvas_${safe_filename}"
         echo "    Downloading linked Canvas file: $filename..."
 
         # Ensure the URL is complete (it should be from Canvas API)
@@ -129,19 +135,19 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         else
             echo "    Error downloading linked Canvas file for user $user_id from $canvas_file_url" >&2
             # Fallback: Save the raw HTML body if download fails
-            out_file_html="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_submission_link_download_failed.html"
+            out_file_html="$sub_dir/${formatted_name}_${user_id}_submission_link_download_failed.html"
             printf '%s\n' "$body" > "$out_file_html"
             echo "    Saved raw HTML containing link to $out_file_html as fallback."
         fi
       elif [[ -n "$gdoc_url" ]]; then
         echo "  Detected Google Doc link in body."
-        out_file_gdoc="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_submission.gdoc.url"
+        out_file_gdoc="$sub_dir/${formatted_name}_${user_id}_submission.gdoc.url"
         echo "    Saving Google Doc URL to $out_file_gdoc..."
         printf '%s\n' "$gdoc_url" > "$out_file_gdoc"
         # Note: Downloading Google Doc content automatically is complex and not implemented here.
       else
         # No special links detected, save the raw HTML body directly
-        out_file_html="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_submission.html"
+        out_file_html="$sub_dir/${formatted_name}_${user_id}_submission.html"
         echo "  No special links found. Saving raw HTML body..."
         echo "  Saving online text entry HTML body to $out_file_html..."
         if printf '%s\n' "$body" > "$out_file_html"; then
@@ -157,7 +163,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   elif [[ "$submission_type" == "online_url" ]]; then
     url=$(echo "$submission_json" | jq -r '.url // ""')
     if [[ -n "$url" ]]; then
-      out_file="$SUBMISSIONS_DIR/${formatted_name}_${user_id}_submission.url"
+      out_file="$sub_dir/${formatted_name}_${user_id}_submission.url"
       echo "  Saving online URL submission to $out_file..."
       # Use printf to avoid issues with echo interpreting backslashes and ensure newline
       printf '%s\n' "$url" > "$out_file"
@@ -170,4 +176,4 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   fi
 done
 
-echo "All submissions downloaded to $SUBMISSIONS_DIR"
+echo "All submissions downloaded to $sub_dir"
