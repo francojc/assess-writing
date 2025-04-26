@@ -81,12 +81,11 @@ if [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag
 fi
 
 # --- Project Structure and Input Checks ---
-pdf_dir="./pdfs"
-png_dir="./pngs"
+sub_dir="./submissions"
+image_dir="./images"
 text_dir="./text"
 assessment_dir="./assessment"
 docs_dir="./docs"
-canvas_dir="./canvas"  # New directory for Canvas submissions
 
 # Check for essential project directories and files
 if [ ! -d "$docs_dir" ] || \
@@ -99,15 +98,15 @@ if [ ! -d "$docs_dir" ] || \
 fi
 
 # Ensure output directories exist
-mkdir -p "$png_dir" "$text_dir" "$assessment_dir"
+mkdir -p "$image_dir" "$text_dir" "$assessment_dir"
 
 # Workflow-specific checks and setup
 if [ "$workflow_source" = "canvas" ]; then
-  mkdir -p "$canvas_dir"
+  mkdir -p "$sub_dir"
 
   # Check for Canvas input if processing is requested
-  if [ "$convert_flag" = true ] && [ -z "$(ls -A "$canvas_dir" 2>/dev/null)" ]; then
-    echo "No Canvas submissions found in '$canvas_dir'."
+  if [ "$convert_flag" = true ] && [ -z "$(ls -A "$sub_dir" 2>/dev/null)" ]; then
+    echo "No Canvas submissions found in '$sub_dir'."
     echo "Running Canvas acquisition step..."
     # Acquire Canvas submissions
     if ! do-acquire.sh; then
@@ -116,22 +115,22 @@ if [ "$workflow_source" = "canvas" ]; then
     fi
 
     # Check again after acquisition
-    if [ -z "$(ls -A "$canvas_dir" 2>/dev/null)" ]; then
+    if [ -z "$(ls -A "$sub_dir" 2>/dev/null)" ]; then
       echo "No Canvas submissions were acquired. Cannot proceed." >&2
       exit 1
     fi
   fi
 else
   # Original scanned PDF checks
-  mkdir -p "$pdf_dir"
+  mkdir -p "$sub_dir"
 
   # Check for PDFs if conversion is requested
   if [ "$convert_flag" = true ]; then
-    pdf_files_exist=$(ls -A "$pdf_dir"/*.pdf 2>/dev/null)
+    pdf_files_exist=$(ls -A "$sub_dir"/*.pdf 2>/dev/null)
 
     if [ -z "$pdf_files_exist" ]; then
-      echo "No PDF files found in '$pdf_dir'."
-      echo "Please add student submission PDF files to '$pdf_dir'."
+      echo "No PDF files found in '$sub_dir'."
+      echo "Please add student submission PDF files to '$sub_dir'."
       exit 0
     fi
   fi
@@ -140,6 +139,7 @@ fi
 # --- Processing Stages ---
 
 # 1. Conversion step (PDFs/Canvas files to PNGs/Markdown)
+# WARN: Need to update. Canvas files may include other formats (docx, HTML, etc.)
 if [ "$convert_flag" = true ]; then
   echo "--- Running Conversion ---"
   processed_count=0
@@ -148,7 +148,7 @@ if [ "$convert_flag" = true ]; then
   if [ "$workflow_source" = "canvas" ]; then
     echo "Converting Canvas submissions..."
     shopt -s nullglob
-    for canvas_file in "$canvas_dir"/*; do
+    for canvas_file in "$sub_dir"/*; do
       echo "Converting: '$(basename "$canvas_file")'"
       if ! do-convert.sh --source canvas "$canvas_file"; then
         echo "Error converting '$(basename "$canvas_file")'." >&2
@@ -161,7 +161,7 @@ if [ "$convert_flag" = true ]; then
   else
     echo "Converting scanned PDFs..."
     shopt -s nullglob
-    for pdf_file in "$pdf_dir"/*.pdf; do
+    for pdf_file in "$sub_dir"/*.pdf; do
       echo "Converting: '$(basename "$pdf_file")'"
       if ! do-convert.sh --source scanned "$pdf_file"; then
         echo "Error converting '$(basename "$pdf_file")'." >&2
@@ -182,15 +182,15 @@ if [ "$convert_flag" = true ]; then
   if [ "$extract_flag" = true ]; then
     if [ "$workflow_source" = "canvas" ]; then
       # For canvas workflow, we may already have text files ready for assessment
-      if [ -z "$(ls -A "$png_dir"/*.png 2>/dev/null)" ] && [ -z "$(ls -A "$text_dir"/*.md 2>/dev/null)" ]; then
+      if [ -z "$(ls -A "$image_dir"/*.png 2>/dev/null)" ] && [ -z "$(ls -A "$text_dir"/*.md 2>/dev/null)" ]; then
         echo "No files found for processing after conversion. Cannot proceed." >&2
         extract_flag=false
         assess_flag=false
       fi
     else
       # For scanned workflow, we need PNGs
-      if [ -z "$(ls -A "$png_dir"/*.png 2>/dev/null)" ]; then
-        echo "No PNG files found or created in '$png_dir'. Cannot proceed with extraction." >&2
+      if [ -z "$(ls -A "$image_dir"/*.png 2>/dev/null)" ]; then
+        echo "No PNG files found or created in '$image_dir'. Cannot proceed with extraction." >&2
         extract_flag=false
         assess_flag=false
       fi
@@ -215,7 +215,7 @@ if [ "$extract_flag" = true ]; then
   fi
 
   shopt -s nullglob
-  for png_file in "$png_dir"/*.png; do
+  for png_file in "$image_dir"/*.png; do
     echo "Extracting text from: '$(basename "$png_file")'"
     if ! do-extract.sh --source "$workflow_source" "$png_file"; then
       echo "Error extracting text from '$(basename "$png_file")'." >&2

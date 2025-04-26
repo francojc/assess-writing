@@ -1,19 +1,34 @@
 #!/usr/bin/env bash
 
-# Acquire Canvas assignment submissions for a course and save to submissions/
-# Usage: This script is called by main.sh, which sets all required environment variables.
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
 
+Options:
+  -h, --help    Show this help message and exit
+
+Acquires Canvas assignment submissions for a course and saves them.
+Relies on environment variables set by the calling script (e.g., main.sh):
+  - CANVAS_API_KEY: Your Canvas API key.
+  - CANVAS_BASE_URL: The base URL for your Canvas instance.
+
+EOF
+}
 set -euo pipefail
 
 # Check required environment variables
 : "${CANVAS_API_KEY:?Set CANVAS_API_KEY in your environment.}"
 : "${CANVAS_BASE_URL:?Set CANVAS_BASE_URL in your environment.}"
-: "${COURSE_ID:?Set COURSE_ID in your environment.}"
-: "${ASSIGNMENT_ID:?Set ASSIGNMENT_ID in your environment.}"
 
 # Output directory for submissions
 : "${SUBMISSIONS_DIR:?SUBMISSIONS_DIR must be set, typically by main.sh.}"
 mkdir -p "$SUBMISSIONS_DIR"
+
+# Show help if requested
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
 
 echo "Fetching submissions for course $COURSE_ID, assignment $ASSIGNMENT_ID from $CANVAS_BASE_URL..."
 
