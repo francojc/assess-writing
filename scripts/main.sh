@@ -19,8 +19,8 @@ Source:
 
 Source dependent options:
   '-c, --canvas' as a source requires:
-  --course <course_id>
-  --assignment <assignment_id>
+    --course COURSE_ID      Canvas Course ID
+    --assignment ASSIGNMENT_ID Canvas Assignment ID
 
 Run multiple stages by combining flags (e.g., -CE).
 By default (no flags), runs all stages (-CEA).
