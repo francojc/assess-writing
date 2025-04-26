@@ -33,8 +33,8 @@
           pythonEnv # Add Python environment
         ];
         shellHook = ''
-          echo "Welcome to the development shell!"
-          echo "Ensure that you set up 'llm' correctly."
+          echo "Welcome to the hand-submitted pre-assessment shell!"
+          echo "Ensure that you set up 'llm' correctly for your chosen API."
         '';
       };
     });

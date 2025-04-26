@@ -31,10 +31,13 @@
           assess-writing.packages.${system}.main-cli # Use the specific package name
           pkgs.bashInteractive
           pythonEnv # Add Python environment
+          pkgs.curl # Add curl for do-acquire.sh
+          pkgs.jq # Add jq for do-acquire.sh
         ];
         shellHook = ''
-          echo "Welcome to the development shell!"
-          echo "Ensure that you set up 'llm' correctly."
+          echo "Welcome to the Canvas submission pre-assessment shell!"
+          echo "Ensure that you set up 'llm' correctly to use your chosen API."
+          echo "Also, set your Canvas environment variables: CANVAS_API_KEY and CANVAS_BASE_URL."
         '';
       };
     });

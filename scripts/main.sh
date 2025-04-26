@@ -2,37 +2,35 @@
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [OPTIONS] [SOURCE]
+Usage: $(basename "$0") [SOURCE] [OPTIONS]
 
 Orchestrates Writing assessment processing pipeline within an initialized project.
 
   -h, --help      Show this help message
 
+Source (Select one, default is --scanned):
+  -S, --scanned   Process scanned PDFs
+  -C, --canvas    Process submissions from Canvas
 
-  # Reorganize these flags such that the 'Source' is first and the flags are '-S, --scanned' and '-C, --canvas' and that the options are all lowercase (e.g. '-q, --acquire', etc.). Also put the source dependent options after the source options. Update the script to reflect these changes AI!
-Options:
-  -Q, --acquire   Run Canvas acquisition step only
-  -C, --convert   Run conversion step only
-  -E, --extract   Run text extraction step only
-  -A, --assess    Run assignment assessment only
-
-Source:
-  -s, --scanned   Process scanned PDFs (default)
-  -c, --canvas    Process submissions from Canvas
+Options (Combine to run multiple steps, default is all steps for the source):
+  -q, --acquire   Run Canvas acquisition step only (requires -C/--canvas)
+  -c, --convert   Run conversion step only
+  -e, --extract   Run text extraction step only
+  -a, --assess    Run assignment assessment only
 
 Source dependent options:
-  '-c, --canvas' as a source requires:
-    --course COURSE_ID      Canvas Course ID
-    --assignment ASSIGNMENT_ID Canvas Assignment ID
+  When using '-C, --canvas', these are required:
+    --course COURSE_ID          Canvas Course ID
+    --assignment ASSIGNMENT_ID  Canvas Assignment ID
 
-Run multiple stages by combining flags (e.g., -CE).
-By default (no flags), runs all stages (-CEA).
+Run multiple stages by combining flags (e.g., -ce).
+By default (no source/options flags), runs all stages for scanned PDFs (-S -cea).
 
 Examples:
-  $(basename "$0")             # Run all stages with scanned PDFs
-  $(basename "$0") -c          # Run all stages with Canvas submissions
-  $(basename "$0") -C -s       # Run only conversion on scanned PDFs
-  $(basename "$0") -EA -c      # Run extraction and assessment on Canvas submissions
+  $(basename "$0")                      # Run all stages with scanned PDFs (-S implicitly)
+  $(basename "$0") -C --course 1 --assignment 2  # Run all stages with Canvas submissions
+  $(basename "$0") -S -c                # Run only conversion on scanned PDFs
+  $(basename "$0") -C -ea --course 1 --assignment 2 # Run extraction and assessment on Canvas submissions
 
 EOF
 }
@@ -53,31 +51,32 @@ workflow_source="scanned"
 # Parse command line arguments
 while (( $# > 0 )); do
   case "$1" in
-    -Q|--acquire)
-      acquire_flag=true
-      shift
-      ;;
-    -C|--convert)
-      convert_flag=true
-      shift
-      ;;
-    -E|--extract)
-      extract_flag=true
-      shift
-      ;;
-    -A|--assess)
-      assess_flag=true
-      shift
-      ;;
-    -s|--scanned)
+    -S|--scanned)
       workflow_source="scanned"
       shift
       ;;
-    -c|--canvas)
+    -C|--canvas)
       workflow_source="canvas"
       shift
       ;;
+    -q|--acquire)
+      acquire_flag=true
+      shift
+      ;;
+    -c|--convert)
+      convert_flag=true
+      shift
+      ;;
+    -e|--extract)
+      extract_flag=true
+      shift
+      ;;
+    -a|--assess)
+      assess_flag=true
+      shift
+      ;;
     --course)
+      # Check if the next argument is empty or starts with a hyphen
       if [[ -z "$2" || "$2" == -* ]]; then
         echo "Error: --course requires a value." >&2; usage; exit 1;
       fi
