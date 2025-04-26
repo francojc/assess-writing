@@ -9,7 +9,7 @@ Orchestrates Writing assessment processing pipeline within an initialized projec
   -h, --help      Show this help message
 
 
-
+  # Reorganize these flags such that the 'Source' is first and the flags are '-S, --scanned' and '-C, --canvas' and that the options are all lowercase (e.g. '-q, --acquire', etc.). Also put the source dependent options after the source options. Update the script to reflect these changes AI!
 Options:
   -Q, --acquire   Run Canvas acquisition step only
   -C, --convert   Run conversion step only
