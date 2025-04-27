@@ -65,4 +65,7 @@ The structure of this resource is as follows:
         └── pdfs
 ```
 
+# Restructuring notes 
+
+
 
