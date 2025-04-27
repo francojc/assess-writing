@@ -7,7 +7,7 @@ Usage: $(basename "$0") [OPTIONS] <input_png_file>
 Options:
   -h, --help    Show this help message and exit
 
-Extracts text from PNG images using LLM tool with Gemini 2.0 Flash model.
+Extracts text from PNG images using LLM tool
 
 Requirements:
   - llm command line tool (https://llm.datasette.io/)
@@ -27,7 +27,7 @@ fi
 
 # Check if llm is installed
 if ! command -v llm &> /dev/null; then
-  echo "Error: llm is not installed. Please install it with \`pipx install llm\` to use this script."
+  echo "Error: llm is not installed. Please install it to use this script."
   exit 1
 fi
 
