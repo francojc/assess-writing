@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
+# Renamed and moved from original do-convert.sh
 
 usage() {
   cat <<EOF
 Usage: $(basename "$0") <input_file>
 
-Converts various file types:
+Converts a single submission file:
   - PDF (.pdf)      -> PNG (.png) into ./images/ (requires imagemagick)
   - DOCX (.docx)    -> Markdown (.md) into ./text/ (requires pandoc)
   - HTML (.html)    -> Markdown (.md) into ./text/ (requires pandoc)
 
 Outputs are named based on the input filename.
+Output directories (./images, ./text) are assumed to exist.
 
 Example:
-  $(basename "$0") my_document.pdf
-  $(basename "$0") report.docx
-  $(basename "$0") submission.html
+  $(basename "$0") submissions/my_document.pdf
+  $(basename "$0") submissions/report.docx
+  $(basename "$0") submissions/submission.html
 EOF
 }
 
@@ -44,9 +46,9 @@ filename=$(basename "$input_file")
 extension="${filename##*.}"
 base_name="${filename%.*}"
 
-# Image output directory
+# Image output directory (Expected to exist)
 image_dir="./images"
-# Text output directory
+# Text output directory (Expected to exist)
 text_dir="./text"
 
 # Determine file type and process accordingly
@@ -57,11 +59,11 @@ case "${extension,,}" in # Convert extension to lowercase for comparison
       echo "Error: imagemagick ('magick' command) not found, required for PDF conversion." >&2
       exit 1
     fi
-    mkdir -p "$image_dir"
     output_png="$image_dir/${base_name}.png"
-    echo "Converting PDF to PNG: '$input_file' -> '$output_png'"
+    echo "  Converting PDF to PNG: '$filename' -> '$output_png'"
+    # Use -append to handle multi-page PDFs into a single tall PNG
     if magick -density 300 "$input_file" -append "$output_png"; then
-      echo "Successfully converted '$filename' to '$output_png'"
+      echo "  Successfully converted '$filename' to '$output_png'"
     else
       echo "Error converting '$filename' to PNG." >&2
       exit 1 # Exit script on conversion error
@@ -73,11 +75,10 @@ case "${extension,,}" in # Convert extension to lowercase for comparison
       echo "Error: pandoc not found, required for DOCX conversion." >&2
       exit 1
     fi
-    mkdir -p "$text_dir"
     output_md="$text_dir/${base_name}.md"
-    echo "Converting DOCX to Markdown: '$input_file' -> '$output_md'"
-    if pandoc "$input_file" -o "$output_md"; then
-       echo "Successfully converted '$filename' to '$output_md'"
+    echo "  Converting DOCX to Markdown: '$filename' -> '$output_md'"
+    if pandoc --extract-media="$image_dir" "$input_file" -o "$output_md"; then # Extract images if possible
+       echo "  Successfully converted '$filename' to '$output_md'"
     else
        echo "Error converting '$filename' to Markdown." >&2
        exit 1 # Exit script on conversion error
@@ -89,20 +90,27 @@ case "${extension,,}" in # Convert extension to lowercase for comparison
       echo "Error: pandoc not found, required for HTML conversion." >&2
       exit 1
     fi
-    mkdir -p "$text_dir"
     output_md="$text_dir/${base_name}.md"
-    echo "Converting HTML to Markdown: '$input_file' -> '$output_md'"
+    echo "  Converting HTML to Markdown: '$filename' -> '$output_md'"
     # Explicitly specify from HTML to markdown
-    if pandoc "$input_file" -f html -t markdown -o "$output_md"; then
-       echo "Successfully converted '$filename' to '$output_md'"
+    # Add --wrap=none to prevent line wrapping issues if text is intended to be processed later
+    if pandoc "$input_file" -f html -t markdown --wrap=none -o "$output_md"; then
+       echo "  Successfully converted '$filename' to '$output_md'"
     else
        echo "Error converting '$filename' to Markdown." >&2
        exit 1 # Exit script on conversion error
     fi
     ;;
+  url)
+    echo "  Skipping conversion for .url file: '$filename'"
+    ;;
+  gdoc.url)
+     echo "  Skipping conversion for .gdoc.url file: '$filename'"
+     ;;
   *)
-    echo "Error: Unsupported file type '$extension' for input file '$filename'." >&2
-    echo "Supported types: pdf, docx, html." >&2
-    exit 1
+    echo "Warning: Unsupported file type '$extension' for conversion: '$filename'." >&2
+    # Don't exit with error for unsupported, just warn and continue workflow
     ;;
 esac
+
+exit 0 # Success for this file (or skipped type)

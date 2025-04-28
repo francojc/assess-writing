@@ -35,52 +35,77 @@ Examples:
 EOF
 }
 
-# Initialize flags
+# Script directory and workflow/step locations
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+workflows_dir="$SCRIPT_DIR/workflows"
+steps_dir="$SCRIPT_DIR/steps" # Keep for potential future direct calls? Or remove if unused by main.
+
+# Initialize flags for steps
 acquire_flag=false
 convert_flag=false
 extract_flag=false
 assess_flag=false
-run_all=false
+# Flag to track if any step flag was explicitly set by the user
+any_step_flag_set=false
 
 # Canvas specific variables
 course_id_val=""
 assignment_id_val=""
-# Default to scanned workflow
-workflow_source="scanned"
+workflow_source="scanned" # Default workflow
+
+# Canvas specific variables
+course_id_val=""
+assignment_id_val=""
+
+# Store step flags to pass down
+step_flags=""
 
 # Parse command line arguments
+# Use getopt for more robust parsing if complexity increases
+parsed_args=()
 while (( $# > 0 )); do
   case "$1" in
     -S|--scanned)
       workflow_source="scanned"
+      parsed_args+=("$1") # Keep source flag for potential future use? Or just set var and shift.
       shift
       ;;
     -C|--canvas)
       workflow_source="canvas"
+      parsed_args+=("$1")
       shift
       ;;
     -q|--acquire)
       acquire_flag=true
+      any_step_flag_set=true
+      step_flags+="q" # Append flag character
       shift
       ;;
     -c|--convert)
       convert_flag=true
+      any_step_flag_set=true
+      step_flags+="c"
       shift
       ;;
     -e|--extract)
       extract_flag=true
+      any_step_flag_set=true
+      step_flags+="e"
       shift
       ;;
     -a|--assess)
       assess_flag=true
+      any_step_flag_set=true
+      step_flags+="a"
       shift
       ;;
     --course)
-      # Check if the next argument is empty or starts with a hyphen
       if [[ -z "$2" || "$2" == -* ]]; then
         echo "Error: --course requires a value." >&2; usage; exit 1;
       fi
       course_id_val="$2"
+      course_id_val="$2"
+      # Don't keep --course N in parsed_args, they are handled via env vars
       shift 2
       ;;
     --assignment)
@@ -88,6 +113,7 @@ while (( $# > 0 )); do
         echo "Error: --assignment requires a value." >&2; usage; exit 1;
       fi
       assignment_id_val="$2"
+      # Don't keep --assignment M in parsed_args
       shift 2
       ;;
     -h|--help)
@@ -95,6 +121,16 @@ while (( $# > 0 )); do
       exit 0
       ;;
     *)
+      # Collect unknown options/positional args if needed later by workflows
+      # parsed_args+=("$1")
+      # shift
+      # For now, treat unknown as error
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
       echo "Unknown option: $1" >&2
       usage
       exit 1
@@ -102,188 +138,92 @@ while (( $# > 0 )); do
   esac
 done
 
-# Determine execution mode if no specific flags provided
-if [ "$acquire_flag" = false ] && [ "$convert_flag" = false ] && [ "$extract_flag" = false ] && [ "$assess_flag" = false ]; then
-  run_all=true
-  acquire_flag=true
-  convert_flag=true
-  extract_flag=true
-  assess_flag=true
+
+# Add step flags to pass if any were set
+if [ "$any_step_flag_set" = true ]; then
+    step_flags_to_pass="-$step_flags"
+else
+    # If no specific step flags, run workflow with default (all steps)
+    # Pass no step flags, workflow script handles default execution.
+    step_flags_to_pass=""
 fi
 
-# Validate Canvas flags if canvas workflow is selected
-if [[ "$workflow_source" == "canvas" && \
-      ( "$acquire_flag" = true || "$convert_flag" = true || "$extract_flag" = true || "$assess_flag" = true || "$run_all" = true ) ]]; then
-   if [[ -z "$course_id_val" || -z "$assignment_id_val" ]]; then
-     echo "Error: --course and --assignment flags are required for the 'canvas' workflow." >&2
-     usage
-     exit 1
-   fi
+
+# Validate Canvas requirements if canvas workflow is selected
+if [[ "$workflow_source" == "canvas" ]]; then
+  # Canvas workflow (or just acquire step) requires course/assignment IDs
+  if [[ -z "$course_id_val" || -z "$assignment_id_val" ]]; then
+    echo "Error: --course and --assignment arguments are required for the 'canvas' workflow." >&2
+    usage
+    exit 1
+  fi
+  # Export variables for the Canvas workflow and acquisition step
+  export COURSE_ID="$course_id_val"
+  export ASSIGNMENT_ID="$assignment_id_val"
+
+  # Check for API key/URL (recommend setting these in .envrc or environment)
+   : "${CANVAS_API_KEY:?CANVAS_API_KEY environment variable not set. Required for Canvas workflow.}"
+   : "${CANVAS_BASE_URL:?CANVAS_BASE_URL environment variable not set. Required for Canvas workflow.}"
+
 fi
-# --- Project Structure and Input Checks ---
-sub_dir="./submissions"
-image_dir="./images"
-text_dir="./text"
-assessment_dir="./assessment"
+
+# Scanned workflow has no specific required args here, but needs PDFs in submissions/
+# --- Common Project Structure and Input Checks ---
 docs_dir="./docs"
+assignment_desc_file="$docs_dir/assignment.md" # Renamed for clarity
+rubric_file="$docs_dir/rubric.md"
 
-# Check for essential project directories and files
+# Check for essential doc files needed by assessment step (regardless of workflow)
 if [ ! -d "$docs_dir" ] || \
-   [ ! -f "$docs_dir/rubric.md" ] || \
-   [ ! -f "$docs_dir/assignment.md" ]; then
-  echo "Error: Project structure incomplete or not run from project root." >&2
-  echo "Expected: ./docs/, ./docs/rubric.md, ./docs/assignment.md" >&2
-  echo "Initialize the project using: nix flake init -t <writing-tools-flake-url>#project" >&2
+   [ ! -f "$rubric_file" ] || \
+   [ ! -f "$assignment_desc_file" ]; then
+  echo "Error: Project structure incomplete. Run from project root." >&2
+  echo "Expected: $docs_dir/, $rubric_file, $assignment_desc_file" >&2
+  # Consider suggesting `nix flake init...` if appropriate context detected later
   exit 1
 fi
 
-# Ensure output directories exist
-mkdir -p "$image_dir" "$text_dir" "$assessment_dir"
+# --- Dispatch to Workflow ---
 
-# Workflow-specific checks and setup
+echo "Starting assessment processing..."
+echo "Selected workflow: $workflow_source"
+echo "Step flags passed to workflow: '$step_flags_to_pass'"
+
+final_exit_code=0
+
 if [ "$workflow_source" = "canvas" ]; then
-  mkdir -p "$sub_dir"
-else
-  # Original scanned PDF checks
-  mkdir -p "$sub_dir"
-fi
+    workflow_script="$workflows_dir/run_canvas.sh"
+    if [ ! -x "$workflow_script" ]; then
+        echo "Error: Canvas workflow script not found or not executable: $workflow_script" >&2
+        exit 1
+    fi
+    echo "Executing Canvas workflow..."
+    # Pass the step flags; remaining args ($@) could be passed if workflows need them
+    if ! "$workflow_script" ${step_flags_to_pass:+"$step_flags_to_pass"}; then
+        echo "Error occurred during Canvas workflow execution." >&2
+        final_exit_code=1
+    fi
 
-# Check for input files in submissions if conversion is requested
-if [ "$convert_flag" = true ] && [ -z "$(ls -A "$sub_dir" 2>/dev/null)" ]; then
-  if [ "$workflow_source" = "canvas" ]; then
-    echo "No submissions found in '$sub_dir'. Acquisition step needed first (use -q or run all)." >&2
-    exit 1 # Canvas needs acquisition first usually
-  else
-    echo "No submission files found in '$sub_dir'." >&2
-    echo "Please add student submission files (e.g., PDFs, DOCX) to '$sub_dir'." >&2
+elif [ "$workflow_source" = "scanned" ]; then
+    workflow_script="$workflows_dir/run_scanned.sh"
+     if [ ! -x "$workflow_script" ]; then
+        echo "Error: Scanned workflow script not found or not executable: $workflow_script" >&2
+        exit 1
+    fi
+    echo "Executing Scanned PDF workflow..."
+    # Pass the step flags; remaining args ($@) could be passed if workflows need them
+     if ! "$workflow_script" ${step_flags_to_pass:+"$step_flags_to_pass"}; then
+        echo "Error occurred during Scanned PDF workflow execution." >&2
+        final_exit_code=1
+     fi
+else
+    # Should not happen due to default and parsing, but as a safeguard:
+    echo "Error: Unknown workflow source '$workflow_source'." >&2
+    usage
     exit 1
-  fi
-fi
-
-# --- Processing Stages ---
-
-# 0. Acquisition step (Canvas submissions)
-if [ "$acquire_flag" = true ]; then
-  echo "--- Running Acquisition ---"
-  if [ "$workflow_source" = "canvas" ]; then
-    echo "Acquiring Canvas submissions..."
-    export COURSE_ID="$course_id_val"
-    export ASSIGNMENT_ID="$assignment_id_val"
-    if ! do-acquire.sh; then
-      echo "Error acquiring Canvas submissions." >&2
-      exit 1
-    fi
-    echo "Acquisition complete."
-  else
-    echo "Acquisition step is only applicable to the 'canvas' workflow. Skipping."
-  fi
-else
-  echo "--- Skipping Acquisition ---"
 fi
 
 
-# 1. Conversion step (PDFs/Canvas files to PNGs/Markdown)
-if [ "$convert_flag" = true ]; then
-  echo "--- Running Conversion ---"
-  processed_count=0
-  error_count=0
-
-  echo "Converting submissions in '$sub_dir'..."
-  shopt -s nullglob
-  for input_file in "$sub_dir"/*; do
-    # Skip directories if any exist
-    if [ -d "$input_file" ]; then
-      continue
-    fi
-    echo "Converting: '$(basename "$input_file")'"
-    # Call do-convert.sh without the --source flag
-    if ! do-convert.sh "$input_file"; then
-      echo "Error converting '$(basename "$input_file")'." >&2
-      ((error_count++))
-    else
-      ((processed_count++))
-    fi
-  done
-  shopt -u nullglob
-
-  echo "Conversion Summary: $processed_count converted, $error_count errors."
-  if [ $error_count -gt 0 ]; then
-    echo "Warning: Some conversion errors occurred." >&2
-  fi
-
-  # Check if any processable files (PNG or MD) were created for subsequent steps
-  if [ "$extract_flag" = true ]; then
-    if [ -z "$(ls -A "$image_dir"/*.png 2>/dev/null)" ] && [ -z "$(ls -A "$text_dir"/*.md 2>/dev/null)" ]; then
-        echo "No processable files (PNGs in $image_dir or MDs in $text_dir) found after conversion." >&2
-        echo "Cannot proceed with extraction or assessment." >&2
-      extract_flag=false
-      assess_flag=false
-    fi
-  fi
-else
-  echo "--- Skipping Conversion ---"
-fi
-
-# 2. Extract Text (from PNGs if needed)
-if [ "$extract_flag" = true ]; then
-  echo "--- Running Text Extraction ---"
-  processed_count=0
-  error_count=0
-
-  # For Canvas workflow, we might already have text files from conversion
-  # So extraction might only be needed for certain file types
-  if [ "$workflow_source" = "canvas" ]; then
-    echo "Extracting text from Canvas submissions (if needed)..."
-  else
-    echo "Extracting text from scanned PNGs..."
-  fi
-
-  shopt -s nullglob
-  for png_file in "$image_dir"/*.png; do
-    echo "Extracting text from: '$(basename "$png_file")'"
-    if ! do-extract.sh "$png_file"; then
-      echo "Error extracting text from '$(basename "$png_file")'." >&2
-      ((error_count++))
-    else
-      ((processed_count++))
-    fi
-  done
-  shopt -u nullglob
-
-  echo "Extraction Summary: $processed_count extracted, $error_count errors."
-
-  # Check if any text files were actually created before proceeding
-  if [ "$assess_flag" = true ] && [ -z "$(ls -A "$text_dir"/*.md 2>/dev/null)" ]; then
-    echo "No text files found or created in '$text_dir'. Cannot proceed with assessment." >&2
-    assess_flag=false
-  fi
-else
-  echo "--- Skipping Text Extraction ---"
-fi
-
-# 3. Assess Assignments
-if [ "$assess_flag" = true ]; then
-  echo "--- Running Assessment ---"
-  processed_count=0
-  error_count=0
-
-  shopt -s nullglob
-  for text_file in "$text_dir"/*.md; do
-    echo "Assessing assignment: '$(basename "$text_file")'"
-    if ! do-assess.sh "$text_file"; then
-      echo "Error assessing '$(basename "$text_file")'." >&2
-      ((error_count++))
-    else
-      ((processed_count++))
-    fi
-  done
-  shopt -u nullglob
-
-  echo "Assessment Summary: $processed_count assessed, $error_count errors."
-else
-  echo "--- Skipping Assessment ---"
-fi
-
-echo "--- Writing processing finished ---"
-exit 0
+echo "--- Assessment processing finished ---"
+exit $final_exit_code
 

@@ -65,7 +65,38 @@ The structure of this resource is as follows:
         └── pdfs
 ```
 
-# Restructuring notes 
+# Restructuring notes
 
+To improve scalability and maintainability, the scripts in `./scripts/` could be restructured as follows:
 
+1.  **Isolate Workflow Logic:** Create separate scripts for each distinct workflow (`canvas`, `scanned`).
+2.  **Refine Step Scripts:** Ensure each processing script (`convert`, `extract`, `assess`) performs a single, focused task.
+3.  **Simplify `main.sh`:** Refactor `main.sh` to act primarily as a dispatcher, identifying the workflow and calling the appropriate workflow script.
+4.  **Organize Scripts:** Use subdirectories for clarity.
+
+**Proposed Structure:**
+
+```
+scripts/
+├── main.sh              # Main entry point/dispatcher
+|
+├── common/              # Utility scripts or functions (optional)
+│   └── ...
+|
+├── steps/               # Atomic processing step scripts
+│   ├── acquire_canvas.sh
+│   ├── convert_submission.sh
+│   ├── extract_text.sh
+│   └── assess_writing.sh
+|
+└── workflows/           # Scripts defining the sequence for each source type
+    ├── run_canvas.sh
+    └── run_scanned.sh
+```
+
+**Benefits:**
+
+*   **Scalability:** Easier to add new sources (workflows) or processing steps without modifying `main.sh` extensively.
+*   **Maintainability:** Logic for each workflow is contained within its own script. Step scripts are simpler and potentially reusable.
+*   **Clarity:** Directory structure clearly separates concerns.
 
