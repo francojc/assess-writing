@@ -17,18 +17,6 @@
     perSystem = system: let
       pkgs = import nixpkgs {inherit system;};
 
-      # --- Package Groups ---
-       corePkgs = with pkgs; [
-         curl
-         jq
-         bashInteractive # Good to have a consistent bash
-       ];
-
-       conversionPkgs = with pkgs; [
-         imagemagick
-         pandoc
-       ];
-
       pythonEnv = pkgs.python3.withPackages (ps:
         with ps; [
           llm
@@ -38,36 +26,22 @@
           llm-anthropic
         ]);
 
-      # --- Main CLI Package ---
       main-cli = pkgs.stdenv.mkDerivation {
         pname = "main-cli";
-        version = "1.1"; # Increment version due to changes
+        version = "1.0";
         src = ./scripts;
 
-        nativeBuildInputs = with pkgs; [ makeWrapper patchutils ];
-        # Runtime dependencies needed in the PATH for the wrapped script
-        buildInputs = [ pkgs.bash ] ++ corePkgs ++ conversionPkgs ++ [ pythonEnv ];
+        nativeBuildInputs = [pkgs.makeWrapper];
+        buildInputs = [pkgs.imagemagick pkgs.pandoc];
 
         installPhase = ''
-          mkdir -p $out/bin $out/libexec/assess-writing/workflows $out/libexec/assess-writing/steps
-          cp main.sh $out/bin/main.sh
-          cp workflows/*.sh $out/libexec/assess-writing/workflows/
-          cp steps/*.sh $out/libexec/assess-writing/steps/
-
-          # Make all scripts executable
-          chmod +x $out/bin/main.sh
-          chmod +x $out/libexec/assess-writing/workflows/*.sh
-          chmod +x $out/libexec/assess-writing/steps/*.sh
-
-          # Patch main.sh to use the correct paths within the Nix store
-          substituteInPlace $out/bin/main.sh \
-            --replace 'SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )' '# SCRIPT_DIR calculation replaced by Nix build' \
-            --replace 'workflows_dir="$SCRIPT_DIR/workflows"' "workflows_dir=\"$out/libexec/assess-writing/workflows\"" \
-            --replace 'steps_dir="$SCRIPT_DIR/steps"' "steps_dir=\"$out/libexec/assess-writing/steps\""
-
+          mkdir -p $out/bin
+          for f in *.sh; do
+            chmod +x $f
+            cp $f $out/bin/
           done
           wrapProgram $out/bin/main.sh \
-            --prefix PATH : ${pkgs.lib.makeBinPath buildInputs}
+            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.imagemagick pkgs.pandoc]}
         '';
 
         meta = {
@@ -76,17 +50,15 @@
         };
       };
     in {
-      # --- Exported Packages ---
       packages = {
         default = main-cli;
         main-cli = main-cli;
       };
 
-      # --- Development Shell ---
       devShells.default = pkgs.mkShell {
         buildInputs = [
-          # Tools needed for running scripts directly in dev env
-         ] ++ corePkgs ++ conversionPkgs ++ [
+          main-cli
+          pkgs.bashInteractive
           pythonEnv
         ];
       };
