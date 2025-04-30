@@ -35,69 +35,16 @@ Examples:
 EOF
 }
 
-# --- Determine Paths ---
-set -x # TEMP DEBUG: Trace execution
+# --- Script Setup ---
+# Ensure scripts exit immediately if a command fails
+set -e
+# Treat unset variables as an error
+set -u
+# Prevent errors in pipelines from being masked
+set -o pipefail
 
-# Get the directory containing THIS script (main.sh), resolving symlinks
-SCRIPT_DIR_RAW=$(dirname -- "${BASH_SOURCE[0]}") # Get raw dirname first
-SCRIPT_DIR=$( cd -- "$SCRIPT_DIR_RAW" &> /dev/null && pwd ) # Resolve potential relative paths/links
-
-echo "Debug Script Path Info:"
-echo "  BASH_SOURCE[0]: ${BASH_SOURCE[0]}"
-echo "  SCRIPT_DIR_RAW: $SCRIPT_DIR_RAW"
-echo "  SCRIPT_DIR (resolved): $SCRIPT_DIR"
-
-# Go up one level to get the base Nix installation directory (e.g., /nix/store/...-main-cli-1.0/)
-INSTALL_BASE_DIR=$( dirname "$SCRIPT_DIR" )
-echo "  INSTALL_BASE_DIR (expected top-level Nix store path): $INSTALL_BASE_DIR"
-
-# Define potential locations for workflows and steps relative to installation
-# Option 2 (libexec) is the *preferred* location for installed scripts
-workflows_dir_option2="$INSTALL_BASE_DIR/libexec/assess-writing/workflows"
-steps_dir_option2="$INSTALL_BASE_DIR/libexec/assess-writing/steps"
-
-# Option 1 (bin) is less preferred but checked as a fallback (maybe for local dev?)
-workflows_dir_option1="$SCRIPT_DIR/workflows"
-steps_dir_option1="$SCRIPT_DIR/steps"
-
-
-echo "Checking possible locations for helper scripts (PRIORITY ON OPTION 2):"
-echo "  Checking Option 2 (libexec):"
-echo "    Workflows Dir: [$workflows_dir_option2]"
-echo "    Steps Dir    : [$steps_dir_option2]"
-echo "  Checking Option 1 (bin):"
-echo "    Workflows Dir: [$workflows_dir_option1]"
-echo "    Steps Dir    : [$steps_dir_option1]"
-
-
-# Check which location exists and contains the expected subdirectories
-# PRIORITIZE libexec location (option 2)
-if [[ -d "$workflows_dir_option2" && -d "$steps_dir_option2" ]]; then
-    workflows_dir="$workflows_dir_option2"
-    steps_dir="$steps_dir_option2"
-    echo "--> Found helper scripts in Option 2 (libexec):"
-    echo "    Workflows Path = $workflows_dir"
-    echo "    Steps Path = $steps_dir"
-# Check bin location (option 1) only if option 2 doesn't exist
-elif [[ -d "$workflows_dir_option1" && -d "$steps_dir_option1" ]]; then
-    workflows_dir="$workflows_dir_option1"
-    steps_dir="$steps_dir_option1"
-    echo "--> Found helper scripts in Option 1 (bin - fallback):"
-    echo "    Workflows Path = $workflows_dir"
-    echo "    Steps Path = $steps_dir"
-else
-    # If neither common location works, report an error.
-    echo "Error: Could not locate the required 'workflows' and 'steps' script directories." >&2
-    echo "Checked the following locations:" >&2
-    echo "  1. Preferred (libexec): '$workflows_dir_option2' / '$steps_dir_option2'" >&2
-    echo "  2. Fallback (bin): '$workflows_dir_option1' / '$steps_dir_option1'" >&2
-    echo "This usually indicates a problem with the Nix build/installation phase for the 'main-cli' package." >&2
-    echo "Verify that 'flake.nix' correctly copies the 'scripts/steps' and 'scripts/workflows' directories into '$INSTALL_BASE_DIR/libexec/assess-writing' and makes them executable." >&2
-    set +x # TEMP DEBUG: Turn off trace
-    exit 1
-fi
-set +x # TEMP DEBUG: Turn off trace
-# --- End Path Determination ---
+# NOTE: Complex path detection removed. Assumes all scripts (main, workflows, steps)
+# are installed into a directory that is included in the PATH (e.g., $out/bin in Nix).
 
 
 # Flag to track if any step flag was explicitly set by the user
@@ -225,23 +172,26 @@ echo "Step flags passed to workflow: '$step_flags_to_pass'"
 
 final_exit_code=0
 
+# Check if workflow scripts are executable and in PATH
+if ! command -v run_canvas.sh >/dev/null 2>&1 || ! command -v run_scanned.sh >/dev/null 2>&1; then
+    echo "Error: Required workflow scripts (run_canvas.sh, run_scanned.sh) not found in PATH." >&2
+    echo "This usually indicates an issue with the Nix build or the environment setup." >&2
+    exit 1
+fi
+
 if [ "$workflow_source" = "canvas" ]; then
-    workflow_script="$workflows_dir/run_canvas.sh"
-    if [ ! -x "$workflow_script" ]; then
-        echo "Error: Canvas workflow script not found or not executable: $workflow_script" >&2
-        exit 1
-    fi
     echo "Executing Canvas workflow..."
-    # Pass the step flags; remaining args ($@) could be passed if workflows need them
-    if ! "$workflow_script" ${step_flags_to_pass:+"$step_flags_to_pass"}; then
+    # Call script directly by name, pass step flags
+    if ! run_canvas.sh ${step_flags_to_pass:+"$step_flags_to_pass"}; then
         echo "Error occurred during Canvas workflow execution." >&2
         final_exit_code=1
     fi
 
 elif [ "$workflow_source" = "scanned" ]; then
-    workflow_script="$workflows_dir/run_scanned.sh"
-     if [ ! -x "$workflow_script" ]; then
-        echo "Error: Scanned workflow script not found or not executable: $workflow_script" >&2
+     echo "Executing Scanned PDF workflow..."
+     # Call script directly by name, pass step flags
+     if ! run_scanned.sh ${step_flags_to_pass:+"$step_flags_to_pass"}; then
+        echo "Error occurred during Scanned PDF workflow execution." >&2
         exit 1
     fi
     echo "Executing Scanned PDF workflow..."

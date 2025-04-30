@@ -29,7 +29,7 @@ sub_dir="./submissions"
 image_dir="./images"
 text_dir="./text"
 assessment_dir="./assessment"
-steps_dir="./scripts/steps" # Location of step scripts
+# NOTE: steps_dir variable removed. Assuming step scripts are in PATH.
 
 # Global flag to track if any step failed during the workflow run
 workflow_error_occurred=false
@@ -82,11 +82,15 @@ mkdir -p "$sub_dir" "$image_dir" "$text_dir" "$assessment_dir"
 # 0. Acquisition step
 if [ "$acquire_flag" = true ]; then
   echo "--- Running Acquisition ---"
+  # Check if step script is available
+  if ! command -v acquire_canvas_submissions.sh >/dev/null 2>&1; then
+      echo "Error: acquire_canvas_submissions.sh not found in PATH." >&2; exit 1;
+  fi
   # Required env vars COURSE_ID, ASSIGNMENT_ID, CANVAS_API_KEY, CANVAS_BASE_URL checked by step script
   # Pass SUBMISSIONS_DIR
-  if ! SUBMISSIONS_DIR="$sub_dir" "$steps_dir/acquire_canvas_submissions.sh"; then
+  if ! SUBMISSIONS_DIR="$sub_dir" acquire_canvas_submissions.sh; then
     echo "Error: Canvas acquisition failed." >&2
-    exit 1
+    exit 1 # Exit immediately on acquisition failure
   fi
   echo "--- Acquisition Complete ---"
 
