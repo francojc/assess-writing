@@ -33,29 +33,32 @@
 
         nativeBuildInputs = [pkgs.makeWrapper];
         # Dependencies needed by the scripts at runtime
-        buildInputs = [pkgs.imagemagick pkgs.pandoc pythonEnv];
+        buildInputs = [
+          pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
+        ];
 
         installPhase = ''
-          # Create the bin directory
+          # Create bin and libexec directories
           mkdir -p $out/bin
+          mkdir -p $out/libexec/assess-writing
 
-          # Find all '.sh' files in the source directory (scripts/)
-          # Copy them into $out/bin and make them executable
-          find . -type f -name '*.sh' -print0 | while IFS= read -r -d $'\0' file; do
-            # Get the base name of the script file
-            local script_name=$(basename "$file")
-            # Copy the file to the output bin directory
-            cp "$file" "$out/bin/$script_name"
-            # Make it executable
-            chmod +x "$out/bin/$script_name"
-          done
+          # Copy main.sh to bin
+          cp main.sh $out/bin/main.sh
+          chmod +x $out/bin/main.sh
 
-          # Now, wrap *each* script in $out/bin
-          # This ensures dependencies are in the PATH for all scripts
-          for script in $out/bin/*; do
-            wrapProgram $script \
-              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.imagemagick pkgs.pandoc pythonEnv ]}
-          done
+          # Copy steps and workflows directories to libexec
+          cp -r steps $out/libexec/assess-writing/steps
+          cp -r workflows $out/libexec/assess-writing/workflows
+
+          # Make all scripts in libexec executable
+          find $out/libexec/assess-writing -type f -name '*.sh' -exec chmod +x {} +
+
+          # Wrap main.sh to make dependencies available when it (and its children) run
+          # Ensure all dependencies used by *any* script are listed here
+          wrapProgram $out/bin/main.sh \
+            --prefix PATH : ${pkgs.lib.makeBinPath [
+              pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
+            ]}
         '';
 
         meta = {
