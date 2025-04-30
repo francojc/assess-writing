@@ -99,11 +99,15 @@ if [ "$convert_flag" = true ]; then
         [ -d "$input_file" ] && continue
 
          echo "Processing file: '$(basename "$input_file")'"
+         # Check if step script is available
+         if ! command -v convert_submission_file.sh >/dev/null 2>&1; then
+            echo "Error: convert_submission_file.sh not found in PATH." >&2; workflow_error_occurred=true; break; # Exit loop if tool missing
+         fi
          # Call the conversion step script
-        if ! "$steps_dir/convert_submission_file.sh" "$input_file"; then
+        if ! convert_submission_file.sh "$input_file"; then
            echo "Error converting '$(basename "$input_file")'." >&2
            ((error_count++))
-           workflow_error_occurred=true
+           workflow_error_occurred=true # Mark error, but continue processing other files
         else
           ((processed_count++))
           # Check if a PNG was potentially created (crude check)

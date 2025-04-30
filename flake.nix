@@ -40,35 +40,43 @@
         installPhase = ''
           runHook preInstall # Standard practice
 
-          # Create bin and libexec directories
+          # Create the bin directory
           mkdir -p $out/bin
-          mkdir -p $out/libexec/assess-writing
 
-          echo "Copying scripts..."
-          # Copy main.sh to bin - Use explicit relative path from src root
-          cp ./main.sh $out/bin/main.sh
-          chmod +x $out/bin/main.sh
+          echo "Copying and making scripts executable..."
+          # Find all '.sh' files in the source directory (scripts/) and its subdirectories
+          # Copy each script directly into $out/bin using its base name and make it executable
+          find . -type f -name '*.sh' -print0 | while IFS= read -r -d $'\0' file; do
+            # Only process files directly inside current dir or steps/ workflows/
+            # This prevents copying files from unexpected subdirs if they exist
+            if [[ "$file" == "./main.sh" || \
+                  "$file" == "./steps/"* || \
+                  "$file" == "./workflows/"* ]]; then
+              local script_name=$(basename "$file")
+              echo "  Copying $file -> $out/bin/$script_name"
+              cp "$file" "$out/bin/$script_name"
+              chmod +x "$out/bin/$script_name"
+            else
+              echo "  Skipping $file (not in expected script location)"
+            fi
+          done
 
-          # Copy steps and workflows directories to libexec - Use explicit relative paths
-          echo "Copying ./steps to $out/libexec/assess-writing/steps"
-          cp -r ./steps $out/libexec/assess-writing/steps
-          echo "Copying ./workflows to $out/libexec/assess-writing/workflows"
-          cp -r ./workflows $out/libexec/assess-writing/workflows
+          echo "Wrapping all scripts in $out/bin..."
+          # Now, wrap *each* script in $out/bin
+          # Identify the scripts we want to wrap (adjust if needed)
+          for script_file in $out/bin/*.sh; do
+             if [[ -f "$script_file" && -x "$script_file" ]]; then
+                echo "  Wrapping $script_file"
+                # Add all required runtime dependencies here
+                wrapProgram "$script_file" \
+                  --prefix PATH : ${pkgs.lib.makeBinPath [
+                    pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
+                  ]}
+             fi
+          done
 
-          echo "Setting execute permissions..."
-          # Make all scripts in libexec executable
-          find $out/libexec/assess-writing -type f -name '*.sh' -exec chmod +x {} +
-
-          echo "Wrapping main.sh..."
-          # Wrap main.sh to make dependencies available when it (and its children) run
-          # Ensure all dependencies used by *any* script are listed here
-          wrapProgram $out/bin/main.sh \
-            --prefix PATH : ${pkgs.lib.makeBinPath [
-              pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
-            ]}
-
-          echo "--- DEBUG: Final structure of $out ---"
-          ls -lR $out
+          echo "--- DEBUG: Final structure of $out/bin ---"
+          ls -l $out/bin
           echo "--- END DEBUG ---"
 
           runHook postInstall # Standard practice
@@ -77,7 +85,7 @@
 
         meta = {
           description = "Shell scripts for the project workflows";
-          # Keep main.sh as the conceptual main entry point if desired
+          # main.sh is still a primary entry point, but others are also available
           mainProgram = "main.sh";
         };
       };

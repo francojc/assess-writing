@@ -123,11 +123,15 @@ if [ "$convert_flag" = true ]; then
         # Skip directories if any exist
         [ -d "$input_file" ] && continue
         echo "Processing file: '$(basename "$input_file")'"
+        # Check if step script is available
+        if ! command -v convert_submission_file.sh >/dev/null 2>&1; then
+            echo "Error: convert_submission_file.sh not found in PATH." >&2; workflow_error_occurred=true; break; # Exit loop if tool missing
+        fi
         # Call the conversion step script
-        if ! "$steps_dir/convert_submission_file.sh" "$input_file"; then
+        if ! convert_submission_file.sh "$input_file"; then
           echo "Error converting '$(basename "$input_file")'." >&2
           ((error_count++))
-          workflow_error_occurred=true
+          workflow_error_occurred=true # Mark error, but continue processing other files
         else
           ((processed_count++))
           any_output_generated=true # Mark that at least one conversion likely succeeded/skipped appropriately
@@ -168,10 +172,14 @@ if [ "$extract_flag" = true ]; then
       shopt -s nullglob
       for png_file in "$image_dir"/*.png; do
         echo "Processing image: '$(basename "$png_file")'"
-        if ! "$steps_dir/extract_text_from_image.sh" "$png_file"; then
+        # Check if step script is available
+        if ! command -v extract_text_from_image.sh >/dev/null 2>&1; then
+            echo "Error: extract_text_from_image.sh not found in PATH." >&2; workflow_error_occurred=true; break; # Exit loop if tool missing
+        fi
+        if ! extract_text_from_image.sh "$png_file"; then
            echo "Error extracting text from '$(basename "$png_file")'." >&2
            ((error_count++))
-           workflow_error_occurred=true
+           workflow_error_occurred=true # Mark error, but continue processing other files
         else
           ((processed_count++))
         fi
@@ -207,10 +215,14 @@ if [ "$assess_flag" = true ]; then
       shopt -s nullglob
       for text_file in "$text_dir"/*.md; do
         echo "Processing text file: '$(basename "$text_file")'"
-        if ! "$steps_dir/assess_assignment_text.sh" "$text_file"; then
+        # Check if step script is available
+        if ! command -v assess_assignment_text.sh >/dev/null 2>&1; then
+            echo "Error: assess_assignment_text.sh not found in PATH." >&2; workflow_error_occurred=true; break; # Exit loop if tool missing
+        fi
+        if ! assess_assignment_text.sh "$text_file"; then
            echo "Error assessing '$(basename "$text_file")'." >&2
            ((error_count++))
-           workflow_error_occurred=true
+           workflow_error_occurred=true # Mark error, but continue processing other files
         else
           ((processed_count++))
         fi
