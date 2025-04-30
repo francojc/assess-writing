@@ -38,28 +38,42 @@
         ];
 
         installPhase = ''
+          runHook preInstall # Standard practice
+
           # Create bin and libexec directories
           mkdir -p $out/bin
           mkdir -p $out/libexec/assess-writing
 
-          # Copy main.sh to bin
-          cp main.sh $out/bin/main.sh
+          echo "Copying scripts..."
+          # Copy main.sh to bin - Use explicit relative path from src root
+          cp ./main.sh $out/bin/main.sh
           chmod +x $out/bin/main.sh
 
-          # Copy steps and workflows directories to libexec
-          cp -r steps $out/libexec/assess-writing/steps
-          cp -r workflows $out/libexec/assess-writing/workflows
+          # Copy steps and workflows directories to libexec - Use explicit relative paths
+          echo "Copying ./steps to $out/libexec/assess-writing/steps"
+          cp -r ./steps $out/libexec/assess-writing/steps
+          echo "Copying ./workflows to $out/libexec/assess-writing/workflows"
+          cp -r ./workflows $out/libexec/assess-writing/workflows
 
+          echo "Setting execute permissions..."
           # Make all scripts in libexec executable
           find $out/libexec/assess-writing -type f -name '*.sh' -exec chmod +x {} +
 
+          echo "Wrapping main.sh..."
           # Wrap main.sh to make dependencies available when it (and its children) run
           # Ensure all dependencies used by *any* script are listed here
           wrapProgram $out/bin/main.sh \
             --prefix PATH : ${pkgs.lib.makeBinPath [
               pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
             ]}
+
+          echo "--- DEBUG: Final structure of $out ---"
+          ls -lR $out
+          echo "--- END DEBUG ---"
+
+          runHook postInstall # Standard practice
         '';
+
 
         meta = {
           description = "Shell scripts for the project workflows";

@@ -35,10 +35,70 @@ Examples:
 EOF
 }
 
-# Script directory and workflow/step locations
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-workflows_dir="$SCRIPT_DIR/workflows"
-steps_dir="$SCRIPT_DIR/steps" # Keep for potential future direct calls? Or remove if unused by main.
+# --- Determine Paths ---
+set -x # TEMP DEBUG: Trace execution
+
+# Get the directory containing THIS script (main.sh), resolving symlinks
+SCRIPT_DIR_RAW=$(dirname -- "${BASH_SOURCE[0]}") # Get raw dirname first
+SCRIPT_DIR=$( cd -- "$SCRIPT_DIR_RAW" &> /dev/null && pwd ) # Resolve potential relative paths/links
+
+echo "Debug Script Path Info:"
+echo "  BASH_SOURCE[0]: ${BASH_SOURCE[0]}"
+echo "  SCRIPT_DIR_RAW: $SCRIPT_DIR_RAW"
+echo "  SCRIPT_DIR (resolved): $SCRIPT_DIR"
+
+# Go up one level to get the base Nix installation directory (e.g., /nix/store/...-main-cli-1.0/)
+INSTALL_BASE_DIR=$( dirname "$SCRIPT_DIR" )
+echo "  INSTALL_BASE_DIR (expected top-level Nix store path): $INSTALL_BASE_DIR"
+
+# Define potential locations for workflows and steps relative to installation
+# Option 2 (libexec) is the *preferred* location for installed scripts
+workflows_dir_option2="$INSTALL_BASE_DIR/libexec/assess-writing/workflows"
+steps_dir_option2="$INSTALL_BASE_DIR/libexec/assess-writing/steps"
+
+# Option 1 (bin) is less preferred but checked as a fallback (maybe for local dev?)
+workflows_dir_option1="$SCRIPT_DIR/workflows"
+steps_dir_option1="$SCRIPT_DIR/steps"
+
+
+echo "Checking possible locations for helper scripts (PRIORITY ON OPTION 2):"
+echo "  Checking Option 2 (libexec):"
+echo "    Workflows Dir: [$workflows_dir_option2]"
+echo "    Steps Dir    : [$steps_dir_option2]"
+echo "  Checking Option 1 (bin):"
+echo "    Workflows Dir: [$workflows_dir_option1]"
+echo "    Steps Dir    : [$steps_dir_option1]"
+
+
+# Check which location exists and contains the expected subdirectories
+# PRIORITIZE libexec location (option 2)
+if [[ -d "$workflows_dir_option2" && -d "$steps_dir_option2" ]]; then
+    workflows_dir="$workflows_dir_option2"
+    steps_dir="$steps_dir_option2"
+    echo "--> Found helper scripts in Option 2 (libexec):"
+    echo "    Workflows Path = $workflows_dir"
+    echo "    Steps Path = $steps_dir"
+# Check bin location (option 1) only if option 2 doesn't exist
+elif [[ -d "$workflows_dir_option1" && -d "$steps_dir_option1" ]]; then
+    workflows_dir="$workflows_dir_option1"
+    steps_dir="$steps_dir_option1"
+    echo "--> Found helper scripts in Option 1 (bin - fallback):"
+    echo "    Workflows Path = $workflows_dir"
+    echo "    Steps Path = $steps_dir"
+else
+    # If neither common location works, report an error.
+    echo "Error: Could not locate the required 'workflows' and 'steps' script directories." >&2
+    echo "Checked the following locations:" >&2
+    echo "  1. Preferred (libexec): '$workflows_dir_option2' / '$steps_dir_option2'" >&2
+    echo "  2. Fallback (bin): '$workflows_dir_option1' / '$steps_dir_option1'" >&2
+    echo "This usually indicates a problem with the Nix build/installation phase for the 'main-cli' package." >&2
+    echo "Verify that 'flake.nix' correctly copies the 'scripts/steps' and 'scripts/workflows' directories into '$INSTALL_BASE_DIR/libexec/assess-writing' and makes them executable." >&2
+    set +x # TEMP DEBUG: Turn off trace
+    exit 1
+fi
+set +x # TEMP DEBUG: Turn off trace
+# --- End Path Determination ---
+
 
 # Flag to track if any step flag was explicitly set by the user
 any_step_flag_set=false
