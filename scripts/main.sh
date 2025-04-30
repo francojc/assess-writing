@@ -8,11 +8,7 @@ Orchestrates Writing assessment processing pipeline within an initialized projec
 
   -h, --help      Show this help message
 
-Source (Select one, default is --scanned):
-  -S, --scanned   Process scanned PDFs
-  -C, --canvas    Process submissions from Canvas
-
-Options (Combine to run multiple steps, default is all steps for the source):
+Options
   -q, --acquire   Run Canvas acquisition step only (requires -C/--canvas)
   -c, --convert   Run conversion step only
   -e, --extract   Run text extraction step only
