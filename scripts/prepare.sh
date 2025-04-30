@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Processes submission files from ./submissions/ directory.
 # Converts various formats (PDF, DOCX, HTML, TXT) to Markdown (.md) in ./assignments/.
 # Handles PDF by converting to PNG and then using OCR (tesseract).

@@ -1,39 +1,53 @@
 #!/usr/bin/env bash
-# Renamed and moved from original do-acquire.sh
 
-# Usage function kept for reference, but this script is not typically called directly by the user.
 usage() {
   cat <<EOF
-Usage: $(basename "$0")
+Usage: $(basename "$0") -c <course_id> -a <assignment_id>
 
-Acquires Canvas assignment submissions for a course and saves them.
-Relies on environment variables set by the calling workflow script:
+Acquires Canvas assignment submissions for a specific course and assignment.
+
+Required Flags:
+  -c, --course      ID of the Canvas course.
+  -a, --assignment  ID of the Canvas assignment.
+
+Required Environment Variables:
   - CANVAS_API_KEY: Your Canvas API key.
   - CANVAS_BASE_URL: The base URL for your Canvas instance.
-  - COURSE_ID: The Canvas course ID.
-  - ASSIGNMENT_ID: The Canvas assignment ID.
-  - SUBMISSIONS_DIR: Directory to save submissions (e.g., ./submissions)
+
+Output:
+  Submissions are saved to the './submissions/' directory.
 
 EOF
 }
 # Exit on unset variables and pipeline errors, but not individual command errors within loops
 set -uo pipefail
 
+# Initialize variables
+COURSE_ID=""
+ASSIGNMENT_ID=""
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -c|--course) COURSE_ID="$2"; shift ;;
+        -a|--assignment) ASSIGNMENT_ID="$2"; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown parameter passed: $1"; usage; exit 1 ;;
+    esac
+    shift
+done
+
 # Check required environment variables passed from workflow
 : "${CANVAS_API_KEY:?Set CANVAS_API_KEY in your environment.}"
 : "${CANVAS_BASE_URL:?Set CANVAS_BASE_URL in your environment.}"
-: "${COURSE_ID:?COURSE_ID environment variable must be set by calling script.}"
-: "${ASSIGNMENT_ID:?ASSIGNMENT_ID environment variable must be set by calling script.}"
 
-# Default output directory if not set by caller
-sub_dir="${SUBMISSIONS_DIR:-./submissions}"
+# Check required arguments
+: "${COURSE_ID:?Course ID is required (-c or --course)}"
+: "${ASSIGNMENT_ID:?Assignment ID is required (-a or --assignment)}"
+
+# Set output directory according to README
+sub_dir="./submissions"
 mkdir -p "$sub_dir"
-
-# Simple help check in case called directly (though not intended)
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
 
 echo "Fetching submissions for course $COURSE_ID, assignment $ASSIGNMENT_ID from $CANVAS_BASE_URL..."
 
