@@ -113,3 +113,9 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 - `imagemagick`, `pandoc` (File conversion)
 - `python3` with the `llm` package and related plugins (e.g., `llm-gemini`, `llm-openai`, `llm-anthropic`, `llm-ollama`) for text extraction and assessment.
 
+## TODOS
+
+- [ ] Add capability to retrieve assignment instructions and rubric from Canvas
+- [ ] Add steps to review and finalize the assessment
+- [ ] Add functionality to send the final assessment back to Canvas
+
