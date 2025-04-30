@@ -111,3 +111,4 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 - [ ] Add capability to retrieve assignment instructions and rubric from Canvas
 - [ ] Add steps to review and finalize the assessment
 - [ ] Add functionality to send the final assessment back to Canvas
+

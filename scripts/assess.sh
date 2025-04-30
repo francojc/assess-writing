@@ -42,6 +42,7 @@ assignments_dir="./assignments"
 assessments_dir="./assessments"
 assignment_desc_file="$docs_dir/assignment.md"
 rubric_file="$docs_dir/rubric.md"
+prompt_file="$docs_dir/prompt.md" # Added prompt file variable
 
 # Check if assignments directory exists
 if [ ! -d "$assignments_dir" ]; then
@@ -65,19 +66,15 @@ fi
 mkdir -p "$assessments_dir"
 
 # Define the prompt for the LLM
-# Use environment variables or config files for sensitive info if needed in prompts later
 # Note: Using heredoc for multiline prompt clarity
+
+# Define the generic prompt for the LLM
 read -r -d '' prompt << EOM
-You are to take on the role of a Spanish TA in an Intermediate Spanish university course (ACTFL level low-intermediate emerging). You will be responsible for grading a student's assignment. Note lean towards higher scalar scores and more thorough, but optimistic qualitative assessment.
+You are tasked with assessing a student's submission based on the provided materials: assignment description, rubric, specific instructions, and the student's work.
 
-The student has submitted a written assignment in Spanish that you need to assess based on the assignment description and the provided rubric. You will need to:
+Follow the specific instructions provided to structure and formulate your assessment. Ensure your response adheres to the requested format and tone. Use the rubric criteria to guide your evaluation and provide feedback as directed. Address the student directly using 'you' when providing qualitative feedback.
 
-1.  provide a score and short comment (in English) for each criterion (out of 5 possible points),
-2.  provide an overall score for the assignment,
-3.  provide qualitative assessment and feedback (in English) to the student on their strengths and areas for improvement using excerpts from their writing that support the criterion evaluation and overall score. Direct all your feedback to the student by referring to them as 'you' (not as 'the student')!
-
-The response, then, should include 3 sections: 1. Rubric scalars and comments, 2. Overall score (out of 20), 3. Qualitative assessment. Format section 1 as a markdown table, section 2. a single line, and section 3. a short synopsis and then a set of examples and potential alternatives for improvement. Use markdown formatting for your entire response.
-Please use the following assignment description, rubric, and student submission to generate your response.
+Please use the following assignment description, rubric, specific instructions, and student submission to generate your response.
 EOM
 
 echo "Starting assessment of files in '$assignments_dir'..."
@@ -93,9 +90,10 @@ find "$assignments_dir" -maxdepth 1 -type f -name '*.md' -print0 | while IFS= re
   echo "  Assessing assignment file: '$input_basename' -> '$output_file'"
 
   # Run the assessment using the llm tool
-  # Concatenate description, rubric, the assignment text, and the prompt itself
+  # Concatenate description, rubric, specific prompt, assignment text, and the generic prompt
   if ! (cat "$assignment_desc_file"; echo -e "\n---\n"; \
          cat "$rubric_file"; echo -e "\n---\n"; \
+         cat "$prompt_file"; echo -e "\n---\n"; \
          cat "$input_md_file"; echo -e "\n---\n"; \
          echo "$prompt") | llm - > "$output_file"; then
 
