@@ -1,30 +1,28 @@
 #!/usr/bin/env bash
-# Renamed and moved from original do-assess.sh
+# Assesses student assignment markdown files in ./assignments/ using LLM.
+
+set -uo pipefail # Exit on unset variables and pipeline errors
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") <input_markdown_file>
+Usage: $(basename "$0")
 
-Assesses a single student assignment (markdown file) using LLM with rubric and assignment description.
+Assesses all student assignment markdown files found in ./assignments/
+using the llm tool, assignment description, and rubric from ./docs/.
 
-Input files required in project structure:
+Requires:
   - ./docs/assignment.md
   - ./docs/rubric.md
-  - The <input_markdown_file> (typically from ./text/)
+  - Markdown files in ./assignments/
+  - 'llm' command installed and configured.
 
-Outputs assessment to ./assessment/ directory.
+Outputs assessment markdown files to ./assessments/. Creates ./assessments/
+if it doesn't exist.
 
 Example:
-  $0 text/Doe-John_12345_submission.md
-
+  $(basename "$0") # Assesses all *.md files in ./assignments/
 EOF
 }
-
-# Show help if requested
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-  usage
-  exit 0
-fi
 
 # Check if llm is installed
 if ! command -v llm &> /dev/null; then
@@ -32,46 +30,39 @@ if ! command -v llm &> /dev/null; then
   exit 1
 fi
 
-
-# Check if an assignment file is provided as an argument
-if [ -z "$1" ]; then
-  echo "Error: Input markdown file not specified." >&2
+# Show help if requested
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 1
 fi
 
-assignment_file="$1"
-
-# Check if the input assignment file exists and is a markdown file
-if [[ ! -f "$assignment_file" || ! "$assignment_file" == *.md ]]; then
-  echo "Error: Input file '$assignment_file' is not a valid markdown file or does not exist." >&2
-  exit 1
-fi
-
-# Define required doc files
+# Define directories and required files
 docs_dir="./docs"
+assignments_dir="./assignments"
+assessments_dir="./assessments"
 assignment_desc_file="$docs_dir/assignment.md"
 rubric_file="$docs_dir/rubric.md"
 
+# Check if assignments directory exists
+if [ ! -d "$assignments_dir" ]; then
+  echo "Error: Assignments directory '$assignments_dir' not found." >&2
+  echo "Did you run the prepare script first?" >&2
+  exit 1
+fi
+
 # Check for essential project docs files
-if [ ! -f "$assignment_desc_file" ]; then
+if [[ ! -f "$assignment_desc_file" ]]; then
   echo "Error: Assignment description file not found: '$assignment_desc_file'" >&2
   exit 1
 fi
-if [ ! -f "$rubric_file" ]; then
+if [[ ! -f "$rubric_file" ]]; then
   echo "Error: Rubric file not found: '$rubric_file'" >&2
   exit 1
 fi
 
 
-# Assessment output directory (Expected to exist)
-assessment_dir="./assessment"
-
-# Construct the output file path based on the input filename
-input_basename=$(basename "$assignment_file")
-output_file="$assessment_dir/${input_basename}" # Keep the .md extension
-
-echo "  Assessing assignment file: '$input_basename' -> '$output_file'"
+# Create output directory
+mkdir -p "$assessments_dir"
 
 # Define the prompt for the LLM
 # Use environment variables or config files for sensitive info if needed in prompts later
@@ -86,23 +77,49 @@ The student has submitted a written assignment in Spanish that you need to asses
 3.  provide qualitative assessment and feedback (in English) to the student on their strengths and areas for improvement using excerpts from their writing that support the criterion evaluation and overall score. Direct all your feedback to the student by referring to them as 'you' (not as 'the student')!
 
 The response, then, should include 3 sections: 1. Rubric scalars and comments, 2. Overall score (out of 20), 3. Qualitative assessment. Format section 1 as a markdown table, section 2. a single line, and section 3. a short synopsis and then a set of examples and potential alternatives for improvement. Use markdown formatting for your entire response.
+Please use the following assignment description, rubric, and student submission to generate your response.
 EOM
 
-# Run the assessment using the llm tool
-# Concatenate description, rubric, and the assignment text as input to the prompt
-if cat "$assignment_desc_file" "$rubric_file" "$assignment_file" | llm "$prompt" > "$output_file"; then
-  # Check if the output file is empty, which might indicate an llm error
-  if [[ ! -s "$output_file" ]]; then
-      echo "Warning: Assessment resulted in an empty file for '$input_basename'. Check llm execution." >&2
-      # Depending on workflow, might want to `rm "$output_file"`
+echo "Starting assessment of files in '$assignments_dir'..."
+
+assessed_count=0
+error_count=0
+
+# Process each markdown file in the assignments directory
+find "$assignments_dir" -maxdepth 1 -type f -name '*.md' -print0 | while IFS= read -r -d $'\0' input_md_file; do
+  input_basename=$(basename "$input_md_file")
+  output_file="$assessments_dir/${input_basename}" # Keep the .md extension
+
+  echo "  Assessing assignment file: '$input_basename' -> '$output_file'"
+
+  # Run the assessment using the llm tool
+  # Concatenate description, rubric, the assignment text, and the prompt itself
+  if ! (cat "$assignment_desc_file"; echo -e "\n---\n"; \
+         cat "$rubric_file"; echo -e "\n---\n"; \
+         cat "$input_md_file"; echo -e "\n---\n"; \
+         echo "$prompt") | llm - > "$output_file"; then
+
+      echo "  Error running llm for assessment on file: '$input_basename'" >&2
+      # Remove potentially empty/corrupt file on error
+      rm -f "$output_file"
+      ((error_count++))
   else
-      echo "  Successfully assessed assignment '$input_basename' and saved to '$output_file'"
+      # Check if the output file is empty, which might indicate an llm issue
+      if [[ ! -s "$output_file" ]]; then
+          echo "  Warning: Assessment resulted in an empty file for '$input_basename'. Check llm execution." >&2
+          # Optionally remove empty file: rm "$output_file"
+      else
+          echo "  Successfully assessed '$input_basename' and saved to '$output_file'"
+          ((assessed_count++))
+      fi
   fi
-else
-  echo "Error running llm for assessment on file: '$input_basename'" >&2
-  # Remove potentially empty/corrupt file on error
-  rm -f "$output_file"
-  exit 1
+done
+
+echo "Assessment Summary: $assessed_count files assessed, $error_count errors."
+
+if [ $error_count -gt 0 ]; then
+   echo "Warning: Some files failed during assessment." >&2
+   exit 1
 fi
 
-exit 0 # Success
+exit 0
