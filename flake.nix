@@ -32,20 +32,35 @@
         src = ./scripts;
 
         nativeBuildInputs = [pkgs.makeWrapper];
-        buildInputs = [pkgs.imagemagick pkgs.pandoc];
+        # Dependencies needed by the scripts at runtime
+        buildInputs = [pkgs.imagemagick pkgs.pandoc pythonEnv];
 
         installPhase = ''
+          # Create the bin directory
           mkdir -p $out/bin
-          for f in *.sh; do
-            chmod +x $f
-            cp $f $out/bin/
+
+          # Find all '.sh' files in the source directory (scripts/)
+          # Copy them into $out/bin and make them executable
+          find . -type f -name '*.sh' -print0 | while IFS= read -r -d $'\0' file; do
+            # Get the base name of the script file
+            local script_name=$(basename "$file")
+            # Copy the file to the output bin directory
+            cp "$file" "$out/bin/$script_name"
+            # Make it executable
+            chmod +x "$out/bin/$script_name"
           done
-          wrapProgram $out/bin/main.sh \
-            --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.imagemagick pkgs.pandoc]}
+
+          # Now, wrap *each* script in $out/bin
+          # This ensures dependencies are in the PATH for all scripts
+          for script in $out/bin/*; do
+            wrapProgram $script \
+              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.imagemagick pkgs.pandoc pythonEnv ]}
+          done
         '';
 
         meta = {
-          description = "Main CLI entry point for project scripts";
+          description = "Shell scripts for the project workflows";
+          # Keep main.sh as the conceptual main entry point if desired
           mainProgram = "main.sh";
         };
       };
