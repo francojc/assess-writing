@@ -80,6 +80,7 @@ The structure of this flake repository (containing the templates and core script
 ├── flake.nix         # Main flake definition, sets up dev environment
 ├── README.md         # This file
 ├── scripts/          # Core processing scripts
+│   ├── pull.sh       # Pull assignment instructions and rubric from Canvas
 │   ├── acquire.sh    # Acquire Canvas submissions
 │   ├── prepare.sh    # Prepare files for processing (PDF -> PNG --> MD, DOCX -> MD, etc.)
 │   ├── assess.sh     # Run the pre-assessment using llm
