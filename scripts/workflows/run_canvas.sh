@@ -21,7 +21,8 @@ Flags are passed down from main.sh.
 Pipeline: Acquire -> Convert -> Extract -> Assess
 EOF
 }
-set -euo pipefail
+# Removing set -e to handle errors within loops explicitly
+# set -euo pipefail
 
 # Default directories (can be overridden by env vars if needed later)
 sub_dir="./submissions"
@@ -29,6 +30,9 @@ image_dir="./images"
 text_dir="./text"
 assessment_dir="./assessment"
 steps_dir="./scripts/steps" # Location of step scripts
+
+# Global flag to track if any step failed during the workflow run
+workflow_error_occurred=false
 
 # Parse step flags passed from main.sh
 acquire_flag=false
@@ -113,14 +117,13 @@ if [ "$convert_flag" = true ]; then
       shopt -s nullglob # Avoid errors if glob matches nothing
       for input_file in "$sub_dir"/*; do
         # Skip directories if any exist
-        if [ -d "$input_file" ]; then
-          continue
-        fi
+        [ -d "$input_file" ] && continue
         echo "Processing file: '$(basename "$input_file")'"
         # Call the conversion step script
         if ! "$steps_dir/convert_submission_file.sh" "$input_file"; then
           echo "Error converting '$(basename "$input_file")'." >&2
           ((error_count++))
+          workflow_error_occurred=true
         else
           ((processed_count++))
           any_output_generated=true # Mark that at least one conversion likely succeeded/skipped appropriately
@@ -130,9 +133,8 @@ if [ "$convert_flag" = true ]; then
 
       echo "Conversion Summary: $processed_count files attempted, $error_count errors."
       if [ $error_count -gt 0 ]; then
-        echo "Warning: Some conversion errors occurred." >&2
+        echo "Warning: Some conversion errors occurred. Workflow will continue." >&2
         # Decide if this should be a fatal error for the workflow
-        # exit 1
       fi
   fi
 
@@ -163,8 +165,9 @@ if [ "$extract_flag" = true ]; then
       for png_file in "$image_dir"/*.png; do
         echo "Processing image: '$(basename "$png_file")'"
         if ! "$steps_dir/extract_text_from_image.sh" "$png_file"; then
-          echo "Error extracting text from '$(basename "$png_file")'." >&2
-          ((error_count++))
+           echo "Error extracting text from '$(basename "$png_file")'." >&2
+           ((error_count++))
+           workflow_error_occurred=true
         else
           ((processed_count++))
         fi
@@ -173,8 +176,7 @@ if [ "$extract_flag" = true ]; then
 
       echo "Extraction Summary: $processed_count files processed, $error_count errors."
       if [ $error_count -gt 0 ]; then
-          echo "Warning: Some text extraction errors occurred." >&2
-          # exit 1
+          echo "Warning: Some text extraction errors occurred. Workflow will continue." >&2
       fi
   fi
 
@@ -202,8 +204,9 @@ if [ "$assess_flag" = true ]; then
       for text_file in "$text_dir"/*.md; do
         echo "Processing text file: '$(basename "$text_file")'"
         if ! "$steps_dir/assess_assignment_text.sh" "$text_file"; then
-          echo "Error assessing '$(basename "$text_file")'." >&2
-          ((error_count++))
+           echo "Error assessing '$(basename "$text_file")'." >&2
+           ((error_count++))
+           workflow_error_occurred=true
         else
           ((processed_count++))
         fi
@@ -212,8 +215,7 @@ if [ "$assess_flag" = true ]; then
 
       echo "Assessment Summary: $processed_count files assessed, $error_count errors."
        if [ $error_count -gt 0 ]; then
-          echo "Warning: Some assessment errors occurred." >&2
-          # exit 1
+          echo "Warning: Some assessment errors occurred. Workflow will continue." >&2
       fi
   fi
   echo "--- Assessment Complete ---"
@@ -221,5 +223,11 @@ else
   echo "--- Skipping Assessment ---"
 fi
 
+
 echo "--- Canvas Workflow Finished ---"
-exit 0
+if [ "$workflow_error_occurred" = true ]; then
+    echo "Workflow finished with errors." >&2
+    exit 1
+else
+    exit 0
+fi

@@ -40,11 +40,6 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 workflows_dir="$SCRIPT_DIR/workflows"
 steps_dir="$SCRIPT_DIR/steps" # Keep for potential future direct calls? Or remove if unused by main.
 
-# Initialize flags for steps
-acquire_flag=false
-convert_flag=false
-extract_flag=false
-assess_flag=false
 # Flag to track if any step flag was explicitly set by the user
 any_step_flag_set=false
 
@@ -53,48 +48,37 @@ course_id_val=""
 assignment_id_val=""
 workflow_source="scanned" # Default workflow
 
-# Canvas specific variables
-course_id_val=""
-assignment_id_val=""
-
 # Store step flags to pass down
 step_flags=""
 
 # Parse command line arguments
 # Use getopt for more robust parsing if complexity increases
-parsed_args=()
 while (( $# > 0 )); do
   case "$1" in
     -S|--scanned)
       workflow_source="scanned"
-      parsed_args+=("$1") # Keep source flag for potential future use? Or just set var and shift.
       shift
       ;;
     -C|--canvas)
       workflow_source="canvas"
-      parsed_args+=("$1")
       shift
       ;;
     -q|--acquire)
-      acquire_flag=true
       any_step_flag_set=true
       step_flags+="q" # Append flag character
       shift
       ;;
     -c|--convert)
-      convert_flag=true
       any_step_flag_set=true
       step_flags+="c"
       shift
       ;;
     -e|--extract)
-      extract_flag=true
       any_step_flag_set=true
       step_flags+="e"
       shift
       ;;
     -a|--assess)
-      assess_flag=true
       any_step_flag_set=true
       step_flags+="a"
       shift
@@ -103,7 +87,6 @@ while (( $# > 0 )); do
       if [[ -z "$2" || "$2" == -* ]]; then
         echo "Error: --course requires a value." >&2; usage; exit 1;
       fi
-      course_id_val="$2"
       course_id_val="$2"
       # Don't keep --course N in parsed_args, they are handled via env vars
       shift 2
@@ -121,16 +104,7 @@ while (( $# > 0 )); do
       exit 0
       ;;
     *)
-      # Collect unknown options/positional args if needed later by workflows
-      # parsed_args+=("$1")
-      # shift
       # For now, treat unknown as error
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1" >&2
-      usage
-      exit 1
       echo "Unknown option: $1" >&2
       usage
       exit 1
