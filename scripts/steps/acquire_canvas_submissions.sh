@@ -16,7 +16,8 @@ Relies on environment variables set by the calling workflow script:
 
 EOF
 }
-set -euo pipefail
+# Exit on unset variables and pipeline errors, but not individual command errors within loops
+set -uo pipefail
 
 # Check required environment variables passed from workflow
 : "${CANVAS_API_KEY:?Set CANVAS_API_KEY in your environment.}"

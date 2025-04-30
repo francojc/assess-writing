@@ -89,8 +89,9 @@ if [ "$acquire_flag" = true ]; then
   # Required env vars COURSE_ID, ASSIGNMENT_ID, CANVAS_API_KEY, CANVAS_BASE_URL checked by step script
   # Pass SUBMISSIONS_DIR
   if ! SUBMISSIONS_DIR="$sub_dir" acquire_canvas_submissions.sh; then
-    echo "Error: Canvas acquisition failed." >&2
-    exit 1 # Exit immediately on acquisition failure
+    echo "Warning: Canvas acquisition step finished with errors. Some submissions may be missing." >&2
+    workflow_error_occurred=true # Mark error, but continue workflow
+    # Do not exit here, allow subsequent steps to run on potentially partial results
   fi
   echo "--- Acquisition Complete ---"
 
