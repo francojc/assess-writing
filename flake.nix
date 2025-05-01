@@ -13,8 +13,8 @@
     ...
   }: let
     systems = flake-utils.lib.defaultSystems;
-
-    perSystem = system: let
+  in
+    flake-utils.lib.eachSystem systems (system: let
       pkgs = import nixpkgs {inherit system;};
 
       pythonEnv = pkgs.python3.withPackages (ps:
@@ -96,6 +96,7 @@
         };
       };
     in {
+      # Per-system outputs
       packages = {
         default = main-cli;
         main-cli = main-cli;
@@ -108,17 +109,15 @@
           pythonEnv
         ];
       };
-    };
-
-    allSystems = flake-utils.lib.eachSystem systems perSystem;
-  in
-    allSystems
+    })
     // {
+      # Non-system-specific outputs (top-level)
       templates = {
         default = {
           path = ./templates;
           description = "New project pre-assessment submissions";
         };
       };
+      # You could add other top-level outputs like overlays here
     };
 }
