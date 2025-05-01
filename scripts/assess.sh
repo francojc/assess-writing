@@ -13,7 +13,7 @@ from ./docs/.
 
 Requires:
   - ./docs/assignment.md (Assignment description)
-  - ./docs/rubric.md (Assessment rubric)
+  - ./docs/rubric.yaml (Assessment rubric)
   - ./docs/prompt.md (Specific LLM assessment instructions)
   - Markdown files in ./assignments/ (Prepared student submissions)
   - 'llm' command installed and configured.
@@ -43,7 +43,7 @@ docs_dir="./docs"
 assignments_dir="./assignments"
 assessments_dir="./assessments"
 assignment_desc_file="$docs_dir/assignment.md"
-rubric_file="$docs_dir/rubric.md"
+rubric_file="$docs_dir/rubric.yaml"
 prompt_file="$docs_dir/prompt.md" # Added prompt file variable
 
 # Check if assignments directory exists
