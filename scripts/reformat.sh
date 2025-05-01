@@ -105,7 +105,9 @@ while IFS= read -r -d $'\0' input_md_file; do
   # - Split by '|', trim whitespace
   # - Build JSON object string for each row
   # - Combine objects into a single JSON array string
-  rubric_data_json_array=$(awk '
+  # Use an if statement to capture output and check exit status, preventing set -e exit on failure
+  rubric_data_json_array=
+  if output=$(awk '
     # Flag to indicate we are inside the table
     in_table {
         # Stop if we hit a blank line or another header after the separator
@@ -154,16 +156,24 @@ while IFS= read -r -d $'\0' input_md_file; do
     /^[[:space:]]*\|[[:space:]]*Criterion ID[[:space:]]*\|/ {
         in_table = 1
     }
-    ' "$input_md_file" | jq -s '.' # Use jq to slurp all JSON objects into a single array
-  )
+    ' "$input_md_file" | jq -s '.'); then
+      # Pipeline succeeded, store the output
+      rubric_data_json_array="$output"
+  else
+      # Pipeline failed
+      echo "  Error: awk/jq pipeline failed extracting rubric from '$input_basename.md'. Assigning empty rubric." >&2
+      rubric_data_json_array='[]' # Assign default empty array on failure
+      # Optionally increment error count here if this is considered a file error
+      # ((error_count++))
+  fi
 
-  # Check if awk/jq produced valid JSON array (at least '[]')
-  if [[ -z "$rubric_data_json_array" ]] || ! jq -e '.' <<< "$rubric_data_json_array" > /dev/null 2>&1 ; then
-      echo "  Warning: Could not parse rubric table or table is empty in '$input_basename.md'. Skipping rubric assessment." >&2
-      # Set to null json array for jq later
+  # Check if the resulting data (even if pipeline succeeded) is valid JSON array (at least '[]')
+  # This handles cases where awk/jq ran but produced null or invalid JSON
+  if ! jq -e '. | type == "array"' <<< "$rubric_data_json_array" > /dev/null 2>&1 ; then
+      echo "  Warning: Rubric data extracted from '$input_basename.md' is not a valid JSON array. Treating as empty." >&2
+      # Reset to null json array for later stages
       rubric_data_json_array='[]'
-      # Consider this an error or skip? For now, proceed without rubric data.
-      # ((error_count++)); continue
+      # This might happen if the table was completely empty or malformed *after* awk/jq ran
   fi
 
   # --- Extract Submission Comments using sed ---
