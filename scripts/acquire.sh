@@ -83,9 +83,13 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   workflow_state=$(echo "$submission_json" | jq -r '.workflow_state') # e.g., submitted, graded, unsubmitted
   # Extract sortable_name (e.g., "Doe, John") and handle potential null
   sortable_name=$(echo "$submission_json" | jq -r '.user.sortable_name // "Unknown_User"')
-  # Format to Last-First, replacing comma and space with a hyphen
-  # Also replace any remaining spaces (e.g., middle names) with underscores
-  formatted_name=$(echo "$sortable_name" | sed 's/, /-/g; s/ /_/g')
+  # Extract Last Name (part before comma), sanitize, and handle edge cases
+  lastName=$(echo "$sortable_name" | cut -d ',' -f 1 | tr -d '[:space:]' | tr -c '[:alnum:]-' '_') # Get part before comma, remove spaces, keep only alphanumeric/hyphen
+  if [[ "$lastName" == "$sortable_name" && "$sortable_name" != "Unknown_User" ]]; then # If no comma was found and not Unknown
+      lastName=$(echo "$sortable_name" | tr -d '[:space:]' | tr -c '[:alnum:]-' '_') # Sanitize the whole name
+  elif [[ "$sortable_name" == "Unknown_User" ]]; then
+      lastName="UnknownUser" # Specific value for unknown
+  fi
 
   # Skip unsubmitted attempts
   if [[ "$workflow_state" == "unsubmitted" ]]; then
@@ -94,7 +98,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
     continue
   fi
 
-  echo "Processing submission for user $user_id ($formatted_name - type: $submission_type)..."
+  echo "Processing submission for user $user_id ($lastName - type: $submission_type)..."
   submission_processed=false # Flag to track if any file was successfully saved for this submission
 
   # Handle Attachments (priority if present)
@@ -105,9 +109,9 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
       filename=$(echo "$attachment" | jq -r '.filename')
       url=$(echo "$attachment" | jq -r '.url')
       # Sanitize filename: prepend user_id to avoid collisions
-      # Replace spaces with underscores in filename for safety
-      safe_filename=$(echo "$filename" | tr ' ' '_') # Keep original filename sanitization
-      out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_${safe_filename}"
+      # Replace spaces/invalid chars with underscores in original filename for safety
+      safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_') # Keep alphanumeric, dot, underscore, hyphen; replace others
+      out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_attachment_${safe_filename}"
       echo "    Downloading attachment: $filename..."
       # Use curl -f to fail on server errors, -L to follow redirects
       if curl -f -sS -L -H "Authorization: Bearer $CANVAS_API_KEY" -o "$out_file" "$url"; then
@@ -146,8 +150,8 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
              filename="${filename}_canvas_file" # Indicate it's a canvas file ID
           fi
         fi
-        safe_filename=$(echo "$filename" | tr ' ' '_')
-        out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_canvas_${safe_filename}"
+        safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_') # Keep alphanumeric, dot, underscore, hyphen; replace others
+        out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_canvasfile_${safe_filename}"
         echo "    Downloading linked Canvas file: $filename..."
 
         # Ensure the URL is complete (it should be from Canvas API)
@@ -158,7 +162,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
             echo "    Error downloading linked Canvas file for user $user_id from $canvas_file_url" >&2
             ((error_count++))
             # Fallback: Save the raw HTML body if download fails
-            out_file_html="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission_link_download_failed.html"
+            out_file_html="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_fallbackhtml.html"
             if printf '%s\n' "$body" > "$out_file_html"; then
               echo "    Saved raw HTML containing link to $out_file_html as fallback."
               submission_processed=true # Still counts as processed (fallback saved)
@@ -169,7 +173,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         fi
       elif [[ -n "$gdoc_url" ]]; then
         echo "  Detected Google Doc link in body."
-        out_file_gdoc="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.gdoc.url"
+        out_file_gdoc="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_gdoc.url"
         echo "    Saving Google Doc URL to $out_file_gdoc..."
         if printf '%s\n' "$gdoc_url" > "$out_file_gdoc"; then
           echo "    Successfully saved GDoc URL to $out_file_gdoc"
@@ -181,7 +185,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         # Note: Downloading Google Doc content automatically is complex and not implemented here.
       else
         # No special links detected, save the raw HTML body directly
-        out_file_html="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.html"
+        out_file_html="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_html.html"
         echo "  No special links found. Saving online text entry HTML body to $out_file_html..."
         if printf '%s\n' "$body" > "$out_file_html"; then
           echo "    Successfully saved HTML to $out_file_html"
@@ -198,7 +202,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   elif [[ "$submission_type" == "online_url" ]]; then
     url=$(echo "$submission_json" | jq -r '.url // ""')
     if [[ -n "$url" ]]; then
-      out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.url"
+      out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_url.url"
       echo "  Saving online URL submission to $out_file..."
       # Use printf to avoid issues with echo interpreting backslashes and ensure newline
       if printf '%s\n' "$url" > "$out_file"; then
