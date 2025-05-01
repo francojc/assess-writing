@@ -176,16 +176,29 @@ while IFS= read -r -d $'\0' input_md_file; do
       # This might happen if the table was completely empty or malformed *after* awk/jq ran
   fi
 
-  # --- Extract Submission Comments using sed ---
-  # Get all lines from "## Submission comments" to the end, then remove the header line itself
-  submission_comment=$(sed -n '/^[[:space:]]*## Submission comments/,$p' "$input_md_file" | sed '1d') || {
-    echo "  Warning: Could not find '## Submission comments' section in '$input_basename.md'. Submission comment will be empty." >&2
-    submission_comment=""
-    # Optionally treat as error: ((error_count++)); continue
-  }
-  # Trim leading/trailing whitespace/newlines from comment block
-  submission_comment=$(echo "$submission_comment" | sed '/^$/d' | sed '$!N; /^\(.*\)\n\1$/!P; D' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  # --- Extract and Trim Submission Comments using awk and parameter expansion ---
+  submission_comment=
+  # Use awk to find the header and print everything after it.
+  # Use an 'if' block to handle potential awk failures gracefully.
+  if comment_raw=$(awk '/^[[:space:]]*## Submission comments/ { f=1; next } f { if(f) print }' "$input_md_file"); then
+      # awk succeeded, now trim using parameter expansion (safer than complex sed)
+      # Remove leading whitespace chars (space, tab, newline)
+      comment_trimmed="${comment_raw#"${comment_raw%%[![:space:]]*}"}"
+      # Remove trailing whitespace chars (space, tab, newline)
+      submission_comment="${comment_trimmed%"${comment_trimmed##*[![:space:]]}"}"
 
+      # Check if, after trimming, the comment is empty (section existed but was empty)
+      if [[ -z "$submission_comment" ]]; then
+          echo "  Info: Empty submission comment section found or extracted for '$input_basename.md'." >&2
+          # Keep submission_comment empty
+      fi
+  else
+      # awk command failed (e.g., file not readable, though unlikely here)
+      # OR the header "## Submission comments" wasn't found by awk.
+      echo "  Warning: Could not find or extract '## Submission comments' section using awk from '$input_basename.md'. Comment will be empty." >&2
+      submission_comment=""
+      # Optionally treat as error: ((error_count++)); continue
+  fi
 
   # --- Assemble Final JSON using jq ---
   # Convert the array of {"id":..,"points":..,"comments":..} into the desired { "criterion_id": {"points":..,"comments":..} } map
