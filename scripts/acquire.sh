@@ -78,6 +78,7 @@ skipped_count=0
 error_count=0
 echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   user_id=$(echo "$submission_json" | jq -r '.user_id')
+  submission_id=$(echo "$submission_json" | jq -r '.id // "NoSubmissionID"') # Added // fallback just in case
   submission_type=$(echo "$submission_json" | jq -r '.submission_type')
   workflow_state=$(echo "$submission_json" | jq -r '.workflow_state') # e.g., submitted, graded, unsubmitted
   # Extract sortable_name (e.g., "Doe, John") and handle potential null
@@ -106,7 +107,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
       # Sanitize filename: prepend user_id to avoid collisions
       # Replace spaces with underscores in filename for safety
       safe_filename=$(echo "$filename" | tr ' ' '_') # Keep original filename sanitization
-      out_file="$sub_dir/${formatted_name}_${user_id}_${safe_filename}"
+      out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_${safe_filename}"
       echo "    Downloading attachment: $filename..."
       # Use curl -f to fail on server errors, -L to follow redirects
       if curl -f -sS -L -H "Authorization: Bearer $CANVAS_API_KEY" -o "$out_file" "$url"; then
@@ -146,7 +147,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
           fi
         fi
         safe_filename=$(echo "$filename" | tr ' ' '_')
-        out_file="$sub_dir/${formatted_name}_${user_id}_canvas_${safe_filename}"
+        out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_canvas_${safe_filename}"
         echo "    Downloading linked Canvas file: $filename..."
 
         # Ensure the URL is complete (it should be from Canvas API)
@@ -157,7 +158,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
             echo "    Error downloading linked Canvas file for user $user_id from $canvas_file_url" >&2
             ((error_count++))
             # Fallback: Save the raw HTML body if download fails
-            out_file_html="$sub_dir/${formatted_name}_${user_id}_submission_link_download_failed.html"
+            out_file_html="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission_link_download_failed.html"
             if printf '%s\n' "$body" > "$out_file_html"; then
               echo "    Saved raw HTML containing link to $out_file_html as fallback."
               submission_processed=true # Still counts as processed (fallback saved)
@@ -168,7 +169,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         fi
       elif [[ -n "$gdoc_url" ]]; then
         echo "  Detected Google Doc link in body."
-        out_file_gdoc="$sub_dir/${formatted_name}_${user_id}_submission.gdoc.url"
+        out_file_gdoc="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.gdoc.url"
         echo "    Saving Google Doc URL to $out_file_gdoc..."
         if printf '%s\n' "$gdoc_url" > "$out_file_gdoc"; then
           echo "    Successfully saved GDoc URL to $out_file_gdoc"
@@ -180,7 +181,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         # Note: Downloading Google Doc content automatically is complex and not implemented here.
       else
         # No special links detected, save the raw HTML body directly
-        out_file_html="$sub_dir/${formatted_name}_${user_id}_submission.html"
+        out_file_html="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.html"
         echo "  No special links found. Saving online text entry HTML body to $out_file_html..."
         if printf '%s\n' "$body" > "$out_file_html"; then
           echo "    Successfully saved HTML to $out_file_html"
@@ -197,7 +198,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   elif [[ "$submission_type" == "online_url" ]]; then
     url=$(echo "$submission_json" | jq -r '.url // ""')
     if [[ -n "$url" ]]; then
-      out_file="$sub_dir/${formatted_name}_${user_id}_submission.url"
+      out_file="$sub_dir/${formatted_name}_${user_id}_${submission_id}_submission.url"
       echo "  Saving online URL submission to $out_file..."
       # Use printf to avoid issues with echo interpreting backslashes and ensure newline
       if printf '%s\n' "$url" > "$out_file"; then
