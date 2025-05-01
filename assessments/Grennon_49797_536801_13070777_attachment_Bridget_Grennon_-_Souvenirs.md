@@ -1,14 +1,14 @@
-| Criterion ID | Description   | Points | Comments                                                                                                                            |
-|--------------|---------------|--------|-------------------------------------------------------------------------------------------------------------------------------------|
-| _5776        | Reflection    | 5.0    | Exceptionally insightful reflection, directly engaging with and comparing the week's materials on well-being.                       |
-| _5135        | Connection    | 5.0    | You make exceptionally clear and thoughtful connections between the course ideas and your personal experiences, like the dinner discussion. |
-| _4515        | Growth        | 5.0    | Excellent articulation of how this week's material fostered personal growth in your understanding of happiness and well-being.        |
-| _6267        | Overall Quality | 5.0    | This is an exceptionally well-written, thoughtful, and engaging reflection. Great job!                                              |
+| Criterion ID | Description | Points | Comments |
+|---|---|---|---|
+| _5776 | Reflection | 5.0 | Exceptionally insightful engagement with Lomas and the Netherlands article, clearly contrasting their approaches to well-being. Your mention of the class activity adds relevant detail. |
+| _5135 | Connection | 5.0 | Excellent connection! You thoughtfully relate the course material to your own understanding of happiness and even brought the concepts into a real-world conversation with others, showing direct application. |
+| _4515 | Growth | 5.0 | Your reflection clearly demonstrates growth in understanding the nuances of happiness, moving beyond simple definitions to consider cultural and personal perspectives, as shown when you discuss how your perspective shifted. |
+| _6267 | Overall Quality | 5.0 | This is an exceptionally well-written and engaging reflection. Your thoughts are clear, well-organized, and effectively integrate the course materials with personal insights. |
 
 ## Submission comments
 
 Hi Bridget,
 
-This is an excellent reflection! You do a fantastic job engaging deeply with the week's materials, particularly in how you contrast the ideas from Lomas and the article on the Netherlands. It's also great to see you connect these concepts so clearly to your own thoughts about language and happiness, and even extend the learning into a conversation outside of class – that's a wonderful sign of integrating these ideas!
+This is an excellent reflection! You did a wonderful job synthesizing the ideas from Lomas and the article on the Netherlands, highlighting the contrast between cultural/linguistic perspectives on well-being and quantitative measures. It's particularly great to see you connecting these ideas directly to your own understanding and even bringing them into conversations outside of class – that shows real engagement and learning.
 
-As you continue writing these reflections, keep exploring these connections; perhaps consider how specific cultural concepts of well-being (like some Lomas might discuss) could offer new perspectives or nuances to your own developing definition of a 'good life'. Really strong work this week!
+Your writing is clear and thoughtful, demonstrating a strong grasp of the material and its relevance to your developing understanding of the 'Good Life'. Keep up this fantastic level of insightful reflection!

@@ -93,7 +93,7 @@ error_count=0
 
 # Process each Markdown file in the source directory
 # Use process substitution to avoid running the loop in a subshell
-while IFS= read -r -d $'\0' input_md_file; do
+while IFS= read -r -d '' input_md_file; do
   input_basename=$(basename "$input_md_file" .md) # Get basename without .md
   output_yaml_file="$DEST_DIR/${input_basename}.yaml" # Create yaml filename
 

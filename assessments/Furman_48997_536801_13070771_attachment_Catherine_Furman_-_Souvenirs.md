@@ -1,14 +1,14 @@
 | Criterion ID | Description | Points | Comments |
 |---|---|---|---|
-| _5776 | Reflection | 5.0 | Exceptionally insightful reflection on specific course materials (back-translation exercise, Weiner chapter). You clearly articulate how these deepened your understanding of happiness's complexity and cultural nuances. |
-| _5135 | Connection | 5.0 | Excellent work connecting the course concepts directly to your personal understanding. You effectively illustrate how the translation exercise and the reading made you reconsider your own perspective on happiness and its influences. |
-| _4515 | Growth | 5.0 | You articulate a clear shift in your thinking about the "Good Life" and your own pursuit of happiness, demonstrating significant personal growth stemming directly from the course activities and readings. |
-| _6267 | Overall Quality | 4.0 | Your reflection is thoughtful, well-structured, and engaging. The ideas are clearly expressed. Minor proofreading for typos (e.g., "Spnaish," "quianitfying," "fuliemtn") would further enhance the overall quality. |
+| _5776 | Reflection | 5.0 | Exceptionally insightful reflection on the course material, particularly the "back translation" exercise and the Weiner chapter. You clearly articulate how these deepened your understanding of happiness's nuances. |
+| _5135 | Connection | 5.0 | Excellent work connecting the course concepts (language, culture, societal structures) directly to your personal understanding and evolving perspective on happiness and the "Good Life". |
+| _4515 | Growth | 5.0 | Very clear articulation of personal growth, particularly the noted shift in thinking about happiness being less about achieving a specific state and more about understanding cultural and linguistic influences. |
+| _6267 | Overall Quality | 4.0 | Well-written, thoughtful, and engaging reflection. The ideas are clearly expressed. Minor proofreading for typos ("Spnaish," "quianitfying," "fuliemtn," etc.) would elevate it further. |
 
 ## Submission comments
 
 Hi Catherine,
 
-This is an excellent reflection! You demonstrate a strong ability to engage deeply with the course materials, particularly the back-translation exercise and the reading on happiness in the Netherlands. It's great to see you thoughtfully analyzing how language and societal structures shape our understanding and experience of happiness.
+This is a really strong reflection! I was particularly impressed by how thoughtfully you engaged with both the back-translation exercise and the reading on the Netherlands. You drew insightful connections between language, culture, societal structures, and the complex concept of happiness, demonstrating a deep engagement with the course material. It's great to see you explicitly connecting these ideas to your own evolving understanding of the "Good Life" and recognizing how your perspective is shifting – that's exactly what these reflections are for.
 
-Your connections between these concepts and your own evolving perspective on the "Good Life" and personal well-being are exceptionally clear and insightful. Keep exploring these connections as the course progresses! As a small suggestion for future submissions, taking a moment to proofread for minor typos will help ensure your writing is as polished as your thinking. Well done this week!
+As a small point for future submissions, taking a moment to proofread for minor typos would add an extra layer of polish to your already excellent work. Keep up the thoughtful engagement!
