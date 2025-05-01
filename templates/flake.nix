@@ -16,27 +16,18 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      # Define Python environment with llm and llm-gemini
-      pythonEnv = pkgs.python313.withPackages (ps:
-        with ps; [
-          llm
-          llm-gemini
-          llm-openai-plugin
-          llm-ollama
-          llm-anthropic
-        ]);
+      # pythonEnv is no longer defined here, as it's part of assess-writing.packages.*.main-cli
     in {
       devShells.default = pkgs.mkShell {
         buildInputs = [
-          assess-writing.packages.${system}.main-cli # Use the specific package name
-          pkgs.bashInteractive
-          pythonEnv # Add Python environment
-          pkgs.curl # Add curl for do-acquire.sh
-          pkgs.jq # Add jq for do-acquire.sh
+          assess-writing.packages.${system}.main-cli # Provides core scripts & their dependencies (Python, curl, jq, etc.)
+          pkgs.bashInteractive                     # For a better interactive shell
+          # Removed: pythonEnv, pkgs.curl, pkgs.jq (provided by main-cli wrapper)
         ];
         shellHook = ''
           echo "Welcome to the Canvas submission pre-assessment shell!"
-          echo "Ensure that you set up 'llm' correctly to use your chosen API."
+          echo "The core scripts (pull.sh, acquire.sh, etc.) are available."
+          echo "Ensure that you set up 'llm' correctly to use your chosen API (llm keys set)."
           echo "Also, set your Canvas environment variables: CANVAS_API_KEY and CANVAS_BASE_URL."
         '';
       };

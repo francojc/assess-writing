@@ -7,26 +7,21 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # --- Default values ---
-COURSE_ID=""
-ASSIGNMENT_ID=""
 FEEDBACK_DIR="./feedback" # Default directory for finalized feedback YAML files
 DRY_RUN=false           # Flag to control dry-run mode
 
 # --- Usage Function ---
 usage() {
   cat <<EOF
-Usage: $(basename "${0}") -c <course_id> -a <assignment_id> [-f <feedback_dir>] [-d] [-h]
+Usage: $(basename "${0}") [-f <feedback_dir>] [-d] [-h]
 
 Submits rubric assessments and comments from feedback YAML files to Canvas.
 
 Reads *.yaml files from the specified feedback directory (default: ./feedback).
 Each YAML file must be named according to the convention:
-  LastName_<UserID>_<AssignmentID>_<SubmissionID>_<Type>.yaml
-and contain YAML front matter with 'rubric_assessment' and/or 'submission_comment' keys.
-
-Required Flags:
-  -c <course_id>      Canvas Course ID
-  -a <assignment_id>  Canvas Assignment ID
+  LastName_<UserID>_<CourseID>_<AssignmentID>_<SubmissionID>_<Type...>.yaml
+(Note: CourseID and AssignmentID are extracted from the filename).
+The file must contain YAML front matter with 'rubric_assessment' and/or 'submission_comment' keys.
 
 Optional Flags:
   -f <feedback_dir>   Directory containing feedback YAML files (default: ${FEEDBACK_DIR})
@@ -70,10 +65,8 @@ url_encode() {
 }
 
 # --- Parse Arguments ---
-while getopts ":c:a:f:dh" opt; do
+while getopts ":f:dh" opt; do
   case $opt in
-    c) COURSE_ID="${OPTARG}" ;;
-    a) ASSIGNMENT_ID="${OPTARG}" ;;
     f) FEEDBACK_DIR="${OPTARG}" ;;
     d) DRY_RUN=true ;;
     h) usage ;;
@@ -84,11 +77,6 @@ done
 shift $((OPTIND-1))
 
 # --- Validate Inputs ---
-if [ -z "${COURSE_ID}" ] || [ -z "${ASSIGNMENT_ID}" ]; then
-  echo "Error: Course ID (-c) and Assignment ID (-a) are required." >&2
-  usage
-fi
-
 if [ -z "${CANVAS_API_KEY:-}" ]; then
   echo "Error: CANVAS_API_KEY environment variable is not set." >&2
   exit 1
@@ -118,26 +106,26 @@ submitted_count=0
 skipped_count=0
 error_count=0
 
-# Process each YAML file in the feedback directory
-find "$FEEDBACK_DIR" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | while IFS= read -r -d $'\0' feedback_file; do
+# Process each YAML file in the feedback directory using process substitution
+# This avoids the while loop running in a subshell, ensuring counts are accurate
+while IFS= read -r -d $'\0' feedback_file; do
   filename=$(basename "$feedback_file")
   echo "Processing feedback file: '$filename'"
 
   # --- Extract IDs from filename ---
-  # Format: LastName_<UserID>_<AssignmentID>_<SubmissionID>_<Type>.yaml
+  # Format: LastName_<UserID>_<CourseID>_<AssignmentID>_<SubmissionID>_<Type...>.yaml
   # Use Parameter Expansion and IFS splitting for reliability
-  IFS='_' read -r lastName user_id file_assignment_id submission_id rest <<< "$filename%.*" # Split base name by underscore
+  IFS='_' read -r lastName user_id course_id assignment_id submission_id rest <<< "$(basename "$filename" .yaml)" # Split base name by underscore
 
   # Validate extracted IDs (basic checks)
-  if ! [[ "$user_id" =~ ^[0-9]+$ ]] || ! [[ "$submission_id" =~ ^[0-9]+$ ]]; then
-      echo "  Warning: Could not reliably extract UserID or SubmissionID from filename '$filename'. Skipping." >&2
+  if ! [[ "$user_id" =~ ^[0-9]+$ ]] || \
+     ! [[ "$course_id" =~ ^[0-9]+$ ]] || \
+     ! [[ "$assignment_id" =~ ^[0-9]+$ ]] || \
+     ! [[ "$submission_id" =~ ^[0-9]+$ ]]; then
+      echo "  Warning: Could not reliably extract UserID, CourseID, AssignmentID, or SubmissionID from filename '$filename'. Skipping." >&2
+      echo "           Expected format: LastName_UserID_CourseID_AssignmentID_SubmissionID_Type.yaml" >&2
       ((skipped_count++))
       continue
-  fi
-   # Optional: Check if assignment ID in filename matches the flag (sanity check)
-  if [[ "$file_assignment_id" != "$ASSIGNMENT_ID" ]]; then
-       echo "  Warning: Assignment ID in filename ('$file_assignment_id') does not match script argument ('$ASSIGNMENT_ID'). Processing anyway, but check consistency." >&2
-       # Consider making this an error or adding a flag to enforce match
   fi
 
   # -- Parse YAML Content ---
@@ -165,32 +153,94 @@ find "$FEEDBACK_DIR" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.yml' \) -
 
    # --- Construct API Payload ---
   data_payload=""
+  payload_parts=() # Use an array to build payload parts safely
+
+  # Process rubric assessment criteria
   if [[ "$rubric_json" != "null" ]]; then
-       encoded_rubric=$(url_encode "$rubric_json")
-       data_payload="rubric_assessment=$encoded_rubric"
+      # Use yq & jq to iterate safely over rubric criteria as JSON lines
+      # Each line: {"key": "criterion_id", "points": value, "comments": value}
+      while IFS= read -r criterion_json_line; do
+          # Parse the JSON line using jq -r to get raw values
+          criterion_id=$(echo "$criterion_json_line" | jq -r '.key')
+          points_val=$(echo "$criterion_json_line" | jq -r '.points // ""')     # Get raw string, default empty if null
+          comments_val=$(echo "$criterion_json_line" | jq -r '.comments // ""') # Get raw string, default empty if null
+
+          # Build the parameter keys (Keep these unencoded for form data)
+          points_key="rubric_assessment[${criterion_id}][points]"
+          comments_key="rubric_assessment[${criterion_id}][comments]"
+
+          # URL encode only the values
+          encoded_points_val=$(url_encode "$points_val")
+          encoded_comments_val=$(url_encode "$comments_val")
+
+          # Add key=encoded_value pairs to payload array
+          payload_parts+=("${points_key}=${encoded_points_val}")
+          payload_parts+=("${comments_key}=${encoded_comments_val}")
+
+      done < <(echo "$rubric_json" | yq 'to_entries | .[] | {"key": .key, "points": .value.points, "comments": .value.comments} | @json') || {
+          # Catch errors from the yq/jq pipeline
+          echo "  Error processing rubric JSON with yq/jq pipeline to extract criteria. Skipping." >&2
+          ((error_count++))
+          continue
+      }
   fi
 
+  # Process submission comment
   if [[ -n "$submission_comment" ]]; then
-       encoded_comment=$(url_encode "$submission_comment")
-       # Add '&' separator if rubric data was also present
-       [[ -n "$data_payload" ]] && data_payload+="&"
-       data_payload+="comment[text_comment]=$encoded_comment"
+       # Key remains unencoded, value gets encoded
+       comment_key="comment[text_comment]"
+       encoded_comment_val=$(url_encode "$submission_comment")
+       payload_parts+=("${comment_key}=${encoded_comment_val}")
+  fi
+
+  # Join payload parts with '&'
+  data_payload=$(printf "%s&" "${payload_parts[@]}")
+  data_payload=${data_payload%&} # Remove trailing '&'
+
+  # Check if payload is actually empty after processing (e.g., rubric_json was null and comment was empty)
+  if [[ -z "$data_payload" ]]; then
+      echo "  Warning: Constructed payload is empty after processing rubric/comment. Skipping." >&2
+      ((skipped_count++))
+      continue
   fi
 
   # --- Build API URL ---
   # Endpoint: /api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id
-  api_url="${CANVAS_BASE_URL}/api/v1/courses/${COURSE_ID}/assignments/${ASSIGNMENT_ID}/submissions/${user_id}"
+  api_url="${CANVAS_BASE_URL}/api/v1/courses/${course_id}/assignments/${assignment_id}/submissions/${user_id}"
 
   # --- Execute API Call or Dry Run ---
   if [ "$DRY_RUN" = true ]; then
     echo "  [DRY RUN] Would submit feedback for UserID: $user_id, SubmissionID: $submission_id"
     echo "  [DRY RUN] API URL: $api_url"
-    echo "  [DRY RUN] Payload:"
-    # Decode payload for readability during dry run
-    decoded_payload=$(jq -sRr @uri <<< "$data_payload" | jq -r '. | split("&") | map(split("=") | {(.[0]): .[1] | @uri}) | add') # Basic attempt to show decoded parts
-    echo "$decoded_payload" | yq -P e '.' - # Pretty print the structure using yq
-    # Note: Direct decoding of URL-encoded form data back requires careful handling of keys/values
-    echo "  [DRY RUN] Raw Payload: $data_payload"
+    echo "  [DRY RUN] Intended Payload Parameters (Key=OriginalValue):"
+    # Display the intended keys and their original, unencoded values for clarity.
+    # Re-extract the data for display to ensure accuracy.
+    if [[ "$rubric_json" != "null" ]]; then
+      while IFS= read -r criterion_json_line; do
+          criterion_id=$(echo "$criterion_json_line" | jq -r '.key')
+          points_val=$(echo "$criterion_json_line" | jq -r '.points // ""')
+          comments_val=$(echo "$criterion_json_line" | jq -r '.comments // ""')
+
+          points_key="rubric_assessment[${criterion_id}][points]"
+          comments_key="rubric_assessment[${criterion_id}][comments]"
+
+          # Print the key and the *original* unencoded value
+          printf "    %-40s : %s\n" "$points_key" "$points_val"
+          printf "    %-40s : %s\n" "$comments_key" "$comments_val"
+      done < <(echo "$rubric_json" | yq 'to_entries | .[] | {"key": .key, "points": .value.points, "comments": .value.comments} | @json')
+    else
+        printf "    %-40s : %s\n" "rubric_assessment" "(not sending)"
+    fi
+
+    # Display submission comment
+    if [[ -n "$submission_comment" ]]; then
+        printf "    %-40s : %s\n" "comment[text_comment]" "$submission_comment"
+    else
+        printf "    %-40s : %s\n" "comment[text_comment]" "(not sending)"
+    fi
+
+    echo "  [DRY RUN] Raw Payload (Actual URL-Encoded Data To Be Sent):"
+    echo "    $data_payload"
     ((submitted_count++)) # Count as "processed" in dry run
   else
     echo "  Submitting feedback for UserID: $user_id, SubmissionID: $submission_id..."
@@ -219,7 +269,7 @@ find "$FEEDBACK_DIR" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.yml' \) -
         ((error_count++))
     fi
   fi
-done
+done < <(find "$FEEDBACK_DIR" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.yml' \) -print0)
 
 echo "Submission Summary: $submitted_count feedback files processed ($([[ "$DRY_RUN" = true ]] && echo 'dry run' || echo 'submitted')), $skipped_count skipped, $error_count errors."
 
