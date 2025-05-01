@@ -94,11 +94,6 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 ## TODOS
 
 - [x] Add capability to retrieve assignment instructions and rubric from Canvas
-
-<!-- 
--- How might I integrate these last two steps into the pipeline AI?
--->
-
 - [ ] Add steps to review and finalize the assessment feedback
 - [ ] Add functionality to send the final feedback and score(s) to Canvas
 
