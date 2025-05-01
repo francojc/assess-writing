@@ -102,13 +102,9 @@
     allSystems
     // {
       templates = {
-        hand = {
-          path = ./templates/hand;
-          description = "New project for hand-written submissions";
-        };
-        canvas = {
-          path = ./templates/canvas;
-          description = "New project for canvas submissions";
+        default = {
+          path = ./templates/
+          description = "New project pre-assessment submissions";
         };
       };
     };
