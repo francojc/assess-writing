@@ -83,7 +83,7 @@ The structure of this flake repository (containing the templates and core script
 │   ├── pull.sh       # Pull assignment instructions and rubric from Canvas
 │   ├── acquire.sh    # Acquire Canvas submissions
 │   ├── prepare.sh    # Prepare files for processing (PDF -> PNG --> MD, DOCX -> MD, etc.)
-│   ├── assess.sh     # Run the pre-assessment using llm
+│   └── assess.sh     # Run the pre-assessment using llm
 └── templates/        # Project templates
     └── default/      # Default template for new projects 
        ├── docs/      # Placeholder for assignment/rubric markdown
@@ -93,6 +93,7 @@ The structure of this flake repository (containing the templates and core script
 
 Description of the scripts: 
 
+- `pull.sh`: This script pulls the assignment instructions and rubric from Canvas using the Canvas API. It requires the `CANVAS_API_KEY` and `CANVAS_BASE_URL` environment variables to be set. The output is saved in the `./docs/` directory as Markdown files.
 - `acquire.sh`: This script pulls Canvas submissions using the Canvas API. It requires the `CANVAS_API_KEY` and `CANVAS_BASE_URL` environment variables to be set and then the `-c, --course` and `-a, --assignment` flags to specify the course and assignment IDs. It will create a directory for the assignment `./submissions/` and download the submissions into it.
 - `prepare.sh`: This script processes the files in the `./submissions/` directory. It converts scanned PDFs to PNG images and extracts text from them into Markdown format and converts DOCX, HTML, or TXT files to Markdown format. The processed files are saved in the `./assignments/` directory.
 - `assess.sh`: This script runs the pre-assessment using the `llm` package. It takes the processed files from the `./assignments/` directory and applies the pre-assessment according to the assignment instructions, rubric, and other necessary context. The results are saved in the `./assessments/` directory.
