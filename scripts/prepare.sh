@@ -12,7 +12,8 @@ Usage: $(basename "$0")
 
 Processes supported files found in ./submissions/ and outputs plain
 text Markdown files to ./assignments/. Creates ./assignments/ if it
-doesn't exist.
+doesn't exist. Intermediate image files from PDF conversion are stored
+in ./intermediate_images/ temporarily and cleaned up afterward.
 
 Requires:
   - imagemagick ('magick' command) for PDF conversion.

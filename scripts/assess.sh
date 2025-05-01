@@ -8,12 +8,14 @@ usage() {
 Usage: $(basename "$0")
 
 Assesses all student assignment markdown files found in ./assignments/
-using the llm tool, assignment description, and rubric from ./docs/.
+using the llm tool, assignment description, rubric, and assessment prompt
+from ./docs/.
 
 Requires:
-  - ./docs/assignment.md
-  - ./docs/rubric.md
-  - Markdown files in ./assignments/
+  - ./docs/assignment.md (Assignment description)
+  - ./docs/rubric.md (Assessment rubric)
+  - ./docs/prompt.md (Specific LLM assessment instructions)
+  - Markdown files in ./assignments/ (Prepared student submissions)
   - 'llm' command installed and configured.
 
 Outputs assessment markdown files to ./assessments/. Creates ./assessments/

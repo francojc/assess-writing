@@ -44,25 +44,18 @@
           mkdir -p $out/bin
 
           echo "Copying and making scripts executable..."
-          # Find all '.sh' files in the source directory (scripts/) and its subdirectories
-          # Copy each script directly into $out/bin using its base name and make it executable
-          find . -type f -name '*.sh' -print0 | while IFS= read -r -d $'\0' file; do
-            # Only process files directly inside current dir or steps/ workflows/
-            # This prevents copying files from unexpected subdirs if they exist
-            if [[ "$file" == "./main.sh" || \
-                  "$file" == "./steps/"* || \
-                  "$file" == "./workflows/"* ]]; then
+          # Find all '.sh' files directly in the source directory (scripts/)
+          # and copy them to $out/bin, making them executable.
+          # Use -maxdepth 1 to only find files in the immediate directory.
+          find . -maxdepth 1 -type f -name '*.sh' -print0 | while IFS= read -r -d $'\0' file; do
               local script_name=$(basename "$file")
               echo "  Copying $file -> $out/bin/$script_name"
               cp "$file" "$out/bin/$script_name"
               chmod +x "$out/bin/$script_name"
-            else
-              echo "  Skipping $file (not in expected script location)"
-            fi
           done
 
           echo "Wrapping all scripts in $out/bin..."
-          # Now, wrap *each* script in $out/bin
+          # Now, wrap *each* executable script found in $out/bin
           # Identify the scripts we want to wrap (adjust if needed)
           for script_file in $out/bin/*.sh; do
              if [[ -f "$script_file" && -x "$script_file" ]]; then
