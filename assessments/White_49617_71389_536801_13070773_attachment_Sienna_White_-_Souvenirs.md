@@ -1,0 +1,11 @@
+| Criterion ID | Description | Points | Comments |
+|---|---|---|---|
+| _5776 | Reflection | 4.0 | You offer insightful reflections on the cafe culture and the happiness paradox, drawing connections to relevant modern phenomena like social media. Consider deepening the analysis of *why* these concepts are significant. |
+| _5135 | Connection | 4.0 | The comparison between café culture and your NYC experience is a strong personal connection. Your link between the happiness paradox and social media is also thoughtful and clear, relating course material to relatable contexts. |
+| _4515 | Growth | 3.0 | Your reflection demonstrates understanding of the material, but it doesn't explicitly discuss *personal growth* or how these ideas are shaping your own understanding of the "good life." Try to articulate how learning about these concepts impacts *you*. |
+| _6267 | Overall Quality | 3.0 | The reflection is clear and addresses the prompt's main points adequately. Expanding on your thoughts and perhaps providing a bit more detail could enhance engagement and depth for future submissions. |
+
+## Submission comments
+Hi Sienna, this is a thoughtful initial reflection! It's great to see you engaging with the course material, like the concept of cafe culture and the happiness paradox, and connecting them to your own experiences and observations (like growing up in NYC and reflecting on social media).
+
+For future reflections, try to build on this by specifically discussing how what you're learning is influencing *your* understanding of the "good life" and what aspects of *your personal growth* are being stimulated by these readings and discussions. Think about how these new ideas challenge or affirm your existing perspectives. Keep up the good work!
