@@ -2,8 +2,8 @@
 
 # Reformats assessment Markdown files (table + comments) into YAML format for submission.
 
-# Strict mode
-set -euo pipefail
+# Strict mode, but allow commands in the loop to fail without exiting
+set -uo pipefail
 IFS=$'\n\t'
 
 # --- Default values ---
@@ -91,9 +91,12 @@ reformatted_count=0
 skipped_count=0
 error_count=0
 
+# Enable nullglob to handle the case where no files match the pattern
+shopt -s nullglob
+
 # Process each Markdown file in the source directory
-# Use process substitution to avoid running the loop in a subshell
-while IFS= read -r -d '' input_md_file; do
+for input_md_file in "$SOURCE_DIR"/*.md; do
+
   input_basename=$(basename "$input_md_file" .md) # Get basename without .md
   output_yaml_file="$DEST_DIR/${input_basename}.yaml" # Create yaml filename
 
@@ -217,6 +220,7 @@ while IFS= read -r -d '' input_md_file; do
 
   # --- Convert JSON to YAML using yq ---
   echo "  Generating YAML file '$output_yaml_file'..."
+  echo ""
   echo "$final_json" | yq -P '.' > "$output_yaml_file" || {
       echo "  Error: Failed to convert JSON to YAML using yq for '$input_basename.md'. Skipping." >&2
       # Clean up potentially partial file
@@ -233,7 +237,10 @@ while IFS= read -r -d '' input_md_file; do
        ((error_count++)) # Count as error if empty
    fi
 
-done < <(find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print0)
+done
+
+# Disable nullglob to restore default behavior
+shopt -u nullglob
 
 echo "Reformatting Summary: $reformatted_count files reformatted, $skipped_count skipped, $error_count errors."
 
