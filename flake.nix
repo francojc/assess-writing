@@ -34,14 +34,15 @@
         nativeBuildInputs = [pkgs.makeWrapper];
         # Dependencies needed by the scripts at runtime
         buildInputs = [
-          pkgs.imagemagick
-          pkgs.pandoc
-          pythonEnv
-          pkgs.jq
-          pkgs.curl
           pkgs.coreutils
-          pkgs.gnused
+          pkgs.curl
           pkgs.gnugrep
+          pkgs.gnused
+          pkgs.imagemagick
+          pkgs.jq
+          pkgs.pandoc
+          pkgs.yq-go
+          pythonEnv
         ];
 
         installPhase = ''
@@ -70,14 +71,15 @@
                 # Add all required runtime dependencies here
                 wrapProgram "$script_file" \
                   --prefix PATH : ${pkgs.lib.makeBinPath [
-            pkgs.imagemagick
-            pkgs.pandoc
-            pythonEnv
-            pkgs.jq
-            pkgs.curl
             pkgs.coreutils
-            pkgs.gnused
+            pkgs.curl
             pkgs.gnugrep
+            pkgs.gnused
+            pkgs.imagemagick
+            pkgs.jq
+            pkgs.pandoc
+            pkgs.yq-go
+            pythonEnv
           ]}
              fi
           done

@@ -92,7 +92,8 @@ skipped_count=0
 error_count=0
 
 # Process each Markdown file in the source directory
-find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print0 | while IFS= read -r -d $'\0' input_md_file; do
+# Use process substitution to avoid running the loop in a subshell
+while IFS= read -r -d $'\0' input_md_file; do
   input_basename=$(basename "$input_md_file" .md) # Get basename without .md
   output_yaml_file="$DEST_DIR/${input_basename}.yaml" # Create yaml filename
 
@@ -119,29 +120,37 @@ find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print0 | while IFS= read -r
         # Process data row
         gsub(/^[[:space:]]*\||[[:space:]]*\|[[:space:]]*$/, "") # Remove leading/trailing | and spaces
         n = split($0, fields, /[[:space:]]*\|[[:space:]]*/) # Split by | with surrounding spaces
-        if (n == 3) {
-            # Trim whitespace from fields
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[1])
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[2])
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[3])
+        # Expecting 4 columns: ID | Name | Points | Comments
+        if (n == 4) {
+            # Trim whitespace from relevant fields
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[1]) # Criterion ID
+            # fields[2] is Criterion Name - ignored
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[3]) # Points
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", fields[4]) # Comments
 
-            # Escape quotes and backslashes in comments for JSON
-            gsub(/\\/, "\\\\", fields[3])
-            gsub(/"/, "\\\"", fields[3])
+            # Escape quotes and backslashes in comments (field 4) for JSON
+            gsub(/\\/, "\\\\", fields[4])
+            gsub(/"/, "\\\"", fields[4])
 
              # Print JSON object for the row (will be collected by shell)
-             # Ensure points is treated as a number (or null if non-numeric)
-            points_val = fields[2]
+             # Ensure points (field 3) is treated as a number (or null if non-numeric)
+            points_val = fields[3]
             if (points_val !~ /^[0-9]+([.][0-9]+)?$/) { points_val = "null" }
-            printf "{\"id\":\"%s\",\"points\":%s,\"comments\":\"%s\"}\n", fields[1], points_val, fields[3]
+            # Use fields[1] (ID), points_val (Points), and fields[4] (Comments)
+            printf "{\"id\":\"%s\",\"points\":%s,\"comments\":\"%s\"}\n", fields[1], points_val, fields[4]
 
         } else {
-            # Print error to stderr if row format is unexpected
-             print "Warning: Skipping malformed table row in " FILENAME ": " $0 > "/dev/stderr"
+             # Print error to stderr if row format is unexpected (allow 3 columns for flexibility?)
+             # For now, strictly expect 4 columns based on observed error.
+             # if (n != 3) { # - uncomment this line and comment below if 3 columns are also valid
+               # Escape inner single quotes: '\'' represents a single quote within the awk script string
+               print "Warning: Skipping row in " FILENAME " - expected 4 columns ('\''| ID | Name | Points | Comments |'\''), found " n ": " $0 > "/dev/stderr"
+             # }
            }
 
     }
     # Detect table header start
+    # Use a more flexible header detection that ignores extra columns for robustness
     /^[[:space:]]*\|[[:space:]]*Criterion ID[[:space:]]*\|/ {
         in_table = 1
     }
@@ -201,7 +210,7 @@ find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print0 | while IFS= read -r
        ((error_count++)) # Count as error if empty
    fi
 
-done
+done < <(find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print0)
 
 echo "Reformatting Summary: $reformatted_count files reformatted, $skipped_count skipped, $error_count errors."
 
