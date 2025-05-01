@@ -34,38 +34,22 @@ direnv allow
 nix develop
 ```
 
-Once inside the development environment, you can use the main script `scripts/main.sh` to run the processing pipelines.
+Once inside the development environment, you can use each of he scripts in the `scripts/` directory to perform the necessary steps for processing writing samples.
 
-### Running the Pipeline
+## Use of Canvas API
 
-The `scripts/main.sh` script orchestrates the workflow. Use `-h` or `--help` to see all options.
+You will need to set up your own API keys for the Canvas API in order to pull assignment instructions, rubrics, and submissions. You can do this by setting the following environment variables:
 
-**Common Usage:**
+```sh
+export CANVAS_API_KEY="your_canvas_api_key"
+export CANVAS_BASE_URL="https://your_canvas_instance.instructure.com/api/v1"
+```
 
-*   **Process scanned PDFs (default):**
-    ```sh
-    scripts/main.sh # Runs convert -> extract -> assess for files in ./submissions
-    # OR explicitly
-    scripts/main.sh -S
-    ```
+The course and assignment ids are set using flags in the `acquire.sh` script. You can find the course and assignment IDs in the Canvas web interface. 
 
-*   **Process Canvas submissions:**
-    ```sh
-    # Set required environment variables first (or use .envrc from template)
-    export CANVAS_API_KEY="your_key"
-    export CANVAS_BASE_URL="https://your.instructure.com"
-    # Then run:
-    scripts/main.sh -C --course 1234 --assignment 5678 # Runs acquire -> convert -> extract -> assess
-    ```
-
-*   **Run specific steps:** Combine flags to run only certain steps.
-    ```sh
-    # Run only conversion and extraction for scanned PDFs
-    scripts/main.sh -S -ce
-
-    # Run only acquisition for Canvas
-    scripts/main.sh -C -q --course 1234 --assignment 5678
-    ```
+<!-- 
+-- TODO: assignment picker?
+-->
 
 ## Use of `llm` 
 
@@ -110,6 +94,11 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 ## TODOS
 
 - [x] Add capability to retrieve assignment instructions and rubric from Canvas
+
+<!-- 
+-- How might I integrate these last two steps into the pipeline AI?
+-->
+
 - [ ] Add steps to review and finalize the assessment feedback
 - [ ] Add functionality to send the final feedback and score(s) to Canvas
 
