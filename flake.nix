@@ -34,7 +34,14 @@
         nativeBuildInputs = [pkgs.makeWrapper];
         # Dependencies needed by the scripts at runtime
         buildInputs = [
-          pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
+          pkgs.imagemagick
+          pkgs.pandoc
+          pythonEnv
+          pkgs.jq
+          pkgs.curl
+          pkgs.coreutils
+          pkgs.gnused
+          pkgs.gnugrep
         ];
 
         installPhase = ''
@@ -63,8 +70,15 @@
                 # Add all required runtime dependencies here
                 wrapProgram "$script_file" \
                   --prefix PATH : ${pkgs.lib.makeBinPath [
-                    pkgs.imagemagick pkgs.pandoc pythonEnv pkgs.jq pkgs.curl pkgs.coreutils pkgs.gnused pkgs.gnugrep
-                  ]}
+            pkgs.imagemagick
+            pkgs.pandoc
+            pythonEnv
+            pkgs.jq
+            pkgs.curl
+            pkgs.coreutils
+            pkgs.gnused
+            pkgs.gnugrep
+          ]}
              fi
           done
 
@@ -74,7 +88,6 @@
 
           runHook postInstall # Standard practice
         '';
-
 
         meta = {
           description = "Shell scripts for the project workflows";
@@ -103,7 +116,7 @@
     // {
       templates = {
         default = {
-          path = ./templates/
+          path = ./templates;
           description = "New project pre-assessment submissions";
         };
       };
