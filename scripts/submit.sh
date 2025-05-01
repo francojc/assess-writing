@@ -10,11 +10,12 @@ IFS=$'\n\t'
 COURSE_ID=""
 ASSIGNMENT_ID=""
 FEEDBACK_DIR="./feedback" # Default directory for finalized feedback YAML files
+DRY_RUN=false           # Flag to control dry-run mode
 
 # --- Usage Function ---
 usage() {
   cat <<EOF
-Usage: $(basename "${0}") -c <course_id> -a <assignment_id> [-f <feedback_dir>] [-h]
+Usage: $(basename "${0}") -c <course_id> -a <assignment_id> [-f <feedback_dir>] [-d] [-h]
 
 Submits rubric assessments and comments from feedback YAML files to Canvas.
 
@@ -29,6 +30,7 @@ Required Flags:
 
 Optional Flags:
   -f <feedback_dir>   Directory containing feedback YAML files (default: ${FEEDBACK_DIR})
+  -d                  Dry-run mode: Print API call details instead of executing.
   -h                  Display this help and exit
 
 Required Environment Variables:
@@ -68,11 +70,12 @@ url_encode() {
 }
 
 # --- Parse Arguments ---
-while getopts ":c:a:f:h" opt; do
+while getopts ":c:a:f:dh" opt; do
   case $opt in
     c) COURSE_ID="${OPTARG}" ;;
     a) ASSIGNMENT_ID="${OPTARG}" ;;
     f) FEEDBACK_DIR="${OPTARG}" ;;
+    d) DRY_RUN=true ;;
     h) usage ;;
     \?) echo "Invalid option: -$OPTARG" >&2; usage ;;
     :) echo "Option -$OPTARG requires an argument." >&2; usage ;;
@@ -178,38 +181,49 @@ find "$FEEDBACK_DIR" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.yml' \) -
   # Endpoint: /api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id
   api_url="${CANVAS_BASE_URL}/api/v1/courses/${COURSE_ID}/assignments/${ASSIGNMENT_ID}/submissions/${user_id}"
 
-  # --- Execute API Call ---
-  echo "  Submitting feedback for UserID: $user_id, SubmissionID: $submission_id..."
-  api_response=$(curl -sfSL -X PUT \
-    -H "${AUTH_HEADER}" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "$data_payload" \
-    "${api_url}" 2>&1) # Capture stderr as well for error messages
-
-  # --- Check Result ---
-  curl_exit_status=$?
-  if [[ $curl_exit_status -eq 0 ]]; then
-      # Check for potential API errors within the JSON response (even with 200 OK)
-     api_error=$(echo "$api_response" | jq -r '.errors[0].message // ""')
-     if [[ -n "$api_error" ]]; then
-         echo "  Error from Canvas API: $api_error for file '$filename'. Check API permissions and data format." >&2
-         ((error_count++))
-     else
-        echo "  Successfully submitted feedback for '$filename'."
-        ((submitted_count++))
-     fi
+  # --- Execute API Call or Dry Run ---
+  if [ "$DRY_RUN" = true ]; then
+    echo "  [DRY RUN] Would submit feedback for UserID: $user_id, SubmissionID: $submission_id"
+    echo "  [DRY RUN] API URL: $api_url"
+    echo "  [DRY RUN] Payload:"
+    # Decode payload for readability during dry run
+    decoded_payload=$(jq -sRr @uri <<< "$data_payload" | jq -r '. | split("&") | map(split("=") | {(.[0]): .[1] | @uri}) | add') # Basic attempt to show decoded parts
+    echo "$decoded_payload" | yq -P e '.' - # Pretty print the structure using yq
+    # Note: Direct decoding of URL-encoded form data back requires careful handling of keys/values
+    echo "  [DRY RUN] Raw Payload: $data_payload"
+    ((submitted_count++)) # Count as "processed" in dry run
   else
-      echo "  Error: curl command failed with exit status $curl_exit_status for file '$filename'." >&2
-      echo "  API URL: $api_url" >&2
-      echo "  Curl Response/Error: $api_response" >&2 # Show captured curl output/error
-      ((error_count++))
-  fi
+    echo "  Submitting feedback for UserID: $user_id, SubmissionID: $submission_id..."
+    api_response=$(curl -sfSL -X PUT \
+      -H "${AUTH_HEADER}" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "$data_payload" \
+      "${api_url}" 2>&1) # Capture stderr as well for error messages
 
+    # --- Check Result ---
+    curl_exit_status=$?
+    if [[ $curl_exit_status -eq 0 ]]; then
+        # Check for potential API errors within the JSON response (even with 200 OK)
+       api_error=$(echo "$api_response" | jq -r '.errors[0].message // ""')
+       if [[ -n "$api_error" ]]; then
+           echo "  Error from Canvas API: $api_error for file '$filename'. Check API permissions and data format." >&2
+           ((error_count++))
+       else
+          echo "  Successfully submitted feedback for '$filename'."
+          ((submitted_count++))
+       fi
+    else
+        echo "  Error: curl command failed with exit status $curl_exit_status for file '$filename'." >&2
+        echo "  API URL: $api_url" >&2
+        echo "  Curl Response/Error: $api_response" >&2 # Show captured curl output/error
+        ((error_count++))
+    fi
+  fi
 done
 
-echo "Submission Summary: $submitted_count feedback files submitted, $skipped_count skipped, $error_count errors."
+echo "Submission Summary: $submitted_count feedback files processed ($([[ "$DRY_RUN" = true ]] && echo 'dry run' || echo 'submitted')), $skipped_count skipped, $error_count errors."
 
-if [ $error_count -gt 0 ]; then
+if [[ "$DRY_RUN" = false && $error_count -gt 0 ]]; then
    echo "Warning: Some submissions failed." >&2
    exit 1
 fi

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Acquires Canvas assignment submissions, attachments, and other submission types.
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") -c <course_id> -a <assignment_id>
@@ -108,12 +110,12 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
     echo "$attachments" | jq -c '.[]' | while IFS= read -r attachment; do
       filename=$(echo "$attachment" | jq -r '.filename')
       url=$(echo "$attachment" | jq -r '.url')
-      # Sanitize filename: prepend user_id to avoid collisions
-      # Replace spaces/invalid chars with underscores in original filename for safety
-      safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_' | sed 's/_$//') # Keep alphanumeric, dot, underscore, hyphen; replace others & remove potential trailing '_'
-      out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_attachment_${safe_filename}"
+      # Sanitize filename: replace spaces/invalid chars with underscores
+      safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_' | sed 's/__*/_/g' | sed 's/^_//; s/_$//') # Keep alphanumeric, dot, underscore, hyphen; replace others, collapse underscores, remove leading/trailing
+      # New filename format: LastName_UserID_CourseID_AssignmentID_SubmissionID_Type_OriginalFilename.ext
+      out_file="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_attachment_${safe_filename}"
       echo "    Downloading attachment: $filename..."
-      # Use curl -f to fail on server errors, -L to follow redirects
+      # Use curl -f to fail on server errors, -L to follow redirects, -o to save
       if curl -f -sS -L -H "Authorization: Bearer $CANVAS_API_KEY" -o "$out_file" "$url"; then
         echo "    Successfully downloaded to $out_file"
         submission_processed=true
@@ -150,11 +152,12 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
              filename="${filename}_canvas_file" # Indicate it's a canvas file ID
           fi
         fi
-        safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_') # Keep alphanumeric, dot, underscore, hyphen; replace others
-        out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_canvasfile_${safe_filename}"
+        safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_' | sed 's/__*/_/g' | sed 's/^_//; s/_$//') # Sanitize
+        # New filename format
+        out_file="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_canvasfile_${safe_filename}"
         echo "    Downloading linked Canvas file: $filename..."
 
-        # Ensure the URL is complete (it should be from Canvas API)
+        # Ensure the URL is complete (it should be from Canvas API), use -f, -L, -o
         if curl -f -sS -L -H "Authorization: Bearer $CANVAS_API_KEY" -o "$out_file" "$canvas_file_url"; then
             echo "    Successfully downloaded Canvas file to $out_file"
             submission_processed=true
@@ -162,7 +165,8 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
             echo "    Error downloading linked Canvas file for user $user_id from $canvas_file_url" >&2
             ((error_count++))
             # Fallback: Save the raw HTML body if download fails
-            out_file_html="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_fallbackhtml.html"
+            # New filename format for fallback HTML
+            out_file_html="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_htmlfallback.html"
             if printf '%s\n' "$body" > "$out_file_html"; then
               echo "    Saved raw HTML containing link to $out_file_html as fallback."
               submission_processed=true # Still counts as processed (fallback saved)
@@ -173,7 +177,8 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         fi
       elif [[ -n "$gdoc_url" ]]; then
         echo "  Detected Google Doc link in body."
-        out_file_gdoc="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_gdoc.url"
+        # New filename format for gdoc URL file
+        out_file_gdoc="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_gdoc.url"
         echo "    Saving Google Doc URL to $out_file_gdoc..."
         if printf '%s\n' "$gdoc_url" > "$out_file_gdoc"; then
           echo "    Successfully saved GDoc URL to $out_file_gdoc"
@@ -185,7 +190,8 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
         # Note: Downloading Google Doc content automatically is complex and not implemented here.
       else
         # No special links detected, save the raw HTML body directly
-        out_file_html="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_html.html"
+        # New filename format for direct HTML save
+        out_file_html="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_html.html"
         echo "  No special links found. Saving online text entry HTML body to $out_file_html..."
         if printf '%s\n' "$body" > "$out_file_html"; then
           echo "    Successfully saved HTML to $out_file_html"
@@ -202,7 +208,8 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
   elif [[ "$submission_type" == "online_url" ]]; then
     url=$(echo "$submission_json" | jq -r '.url // ""')
     if [[ -n "$url" ]]; then
-      out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_url.url"
+      # New filename format for URL file
+      out_file="$sub_dir/${lastName}_${user_id}_${COURSE_ID}_${ASSIGNMENT_ID}_${submission_id}_url.url"
       echo "  Saving online URL submission to $out_file..."
       # Use printf to avoid issues with echo interpreting backslashes and ensure newline
       if printf '%s\n' "$url" > "$out_file"; then
