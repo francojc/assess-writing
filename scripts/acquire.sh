@@ -110,7 +110,7 @@ echo "$response" | jq -c '.[]' | while IFS= read -r submission_json; do
       url=$(echo "$attachment" | jq -r '.url')
       # Sanitize filename: prepend user_id to avoid collisions
       # Replace spaces/invalid chars with underscores in original filename for safety
-      safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_') # Keep alphanumeric, dot, underscore, hyphen; replace others
+      safe_filename=$(echo "$filename" | tr -c '[:alnum:]._-' '_' | sed 's/_$//') # Keep alphanumeric, dot, underscore, hyphen; replace others & remove potential trailing '_'
       out_file="$sub_dir/${lastName}_${user_id}_${ASSIGNMENT_ID}_${submission_id}_attachment_${safe_filename}"
       echo "    Downloading attachment: $filename..."
       # Use curl -f to fail on server errors, -L to follow redirects

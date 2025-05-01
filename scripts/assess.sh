@@ -13,7 +13,7 @@ from ./docs/.
 
 Requires:
   - ./docs/assignment.md (Assignment description)
-  - ./docs/rubric.yaml (Assessment rubric)
+  - ./docs/rubric.md (Assessment rubric)
   - ./docs/prompt.md (Specific LLM assessment instructions)
   - Markdown files in ./assignments/ (Prepared student submissions)
   - 'llm' command installed and configured.
@@ -43,8 +43,8 @@ docs_dir="./docs"
 assignments_dir="./assignments"
 assessments_dir="./assessments"
 assignment_desc_file="$docs_dir/assignment.md"
-rubric_file="$docs_dir/rubric.yaml"
-prompt_file="$docs_dir/prompt.md" # Added prompt file variable
+rubric_file="$docs_dir/rubric.md"
+prompt_file="$docs_dir/prompt.md"
 
 # Check if assignments directory exists
 if [ ! -d "$assignments_dir" ]; then
@@ -79,25 +79,26 @@ read -r -d '' prompt << EOM
 You are an AI assistant tasked with generating a PRELIMINARY ASSESSMENT of a student's submission to assist a human reviewer.
 
 **Input Materials Context:**
-1.  Assignment Description (`assignment.md`): Explains the assignment goals.
-2.  Rubric Definition (`rubric.yaml`): Lists criteria with IDs, descriptions, and max points. Use THESE IDs.
-3.  Assessment Guidance (`prompt.md`): Provides persona (e.g., TA role), course/student context, desired tone, and specific focus areas for the content of your assessment.
+1.  Assignment Description ("assignment.md"): Explains the assignment goals.
+2.  Rubric Definition ("rubric.md"): Provides criteria sections, EACH starting with "## Criterion: [<Criterion ID>] <Description> (<Max Points> Points)". It may also include rating tables. Extract the ID and Description for each criterion.
+3.  Assessment Guidance ("prompt.md"): Provides persona (e.g., TA role), course/student context, desired tone, and specific focus areas for the content of your assessment.
 4.  Student's Submission (Final Input Text): The student's work to assess.
 
 **Required Output Format:**
 Your entire response MUST consist ONLY of the following two parts in Markdown, with NO other text, explanations, greetings, or summaries:
 
 1.  **Rubric Assessment Table:**
-    *   Start with the EXACT header row: `| Criterion ID | Points | Comments |`
-    *   Follow with the separator row: `|---|---|---|`
-    *   Include one row for EACH criterion ID listed in the `rubric.yaml`.
-    *   **Criterion ID column:** MUST contain the specific ID from the `rubric.yaml`.
+    *   Start with the EXACT header row: "| Criterion ID | Description | Points | Comments |"
+    *   Follow with the separator row: "|---|---|---|---|"
+    *   Include one row for EACH criterion found in the "rubric.md" (identified by its "[<Criterion ID>]" marker).
+    *   **Criterion ID column:** MUST contain the specific ID parsed from the "rubric.md" heading (e.g., "_1234").
+    *   **Description column:** MUST contain the criterion description parsed from the "rubric.md" heading.
     *   **Points column:** MUST contain ONLY the suggested numerical score for that criterion.
-    *   **Comments column:** MUST contain your brief justification/commentary (in English) for the suggested score. Reference the student's work where appropriate. Consult `prompt.md` for guidance on tone and focus for these comments.
+    *   **Comments column:** MUST contain your brief justification/commentary (in English) for the suggested score. Reference the student's work where appropriate. Consult "prompt.md" for guidance on tone and focus for these comments.
 
 2.  **Submission Comments Section:**
-    *   Start this section with the EXACT heading: `## Submission comments`
-    *   Below the heading, provide overall qualitative feedback (in English) directly addressing the student ('you'). Consult `prompt.md` for guidance on tone, focus (e.g., strengths, areas for improvement), and context (e.g., course level).
+    *   Start this section with the EXACT heading: "## Submission comments"
+    *   Below the heading, provide overall qualitative feedback (in English) directly addressing the student ('you'). Consult "prompt.md" for guidance on tone, focus (e.g., strengths, areas for improvement), and context (e.g., course level).
 
 Adhere STRICTLY to this two-part format.
 EOM

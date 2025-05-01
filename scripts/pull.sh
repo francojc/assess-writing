@@ -84,7 +84,7 @@ check_deps
 API_URL="${CANVAS_BASE_URL}/api/v1/courses/${COURSE_ID}/assignments/${ASSIGNMENT_ID}"
 AUTH_HEADER="Authorization: Bearer ${CANVAS_API_KEY}"
 ASSIGNMENT_FILE="${DOCS_DIR}/assignment.md"
-RUBRIC_FILE="${DOCS_DIR}/rubric.yaml" # Changed to yaml extension
+RUBRIC_FILE="${DOCS_DIR}/rubric.md" # Changed back to .md extension
 
 echo "Fetching assignment data from ${API_URL}..."
 
@@ -129,60 +129,47 @@ rubric_exists=$(echo "${api_response}" | jq 'if .rubric? and (.rubric | type == 
 if [ "$rubric_exists" != "true" ]; then
   echo "Warning: Rubric is missing, empty, or not an array in the API response." >&2
   # Create an empty file or a placeholder
-  echo "# Rubric YAML Placeholder" > "${RUBRIC_FILE}"
+  echo "# Rubric" > "${RUBRIC_FILE}"
   echo "" >> "${RUBRIC_FILE}"
-  echo "# No rubric provided or rubric is empty via Canvas API." >> "${RUBRIC_FILE}"
+  echo "*No rubric provided or rubric is empty via Canvas API.*" >> "${RUBRIC_FILE}"
 else
-  echo "Formatting rubric to YAML..."
-  # jq filter to format the essential rubric structure into YAML
-  # This creates a basic template structure for later assessment.
-  jq_rubric_yaml_filter='
-    "# Rubric Definition: " + (.rubric_settings.title // "Untitled Rubric") + "\n" +
-    "# Total Points Possible: " + (.rubric_settings.points_possible | tostring) + "\n" +
-    "# Instructions: Copy this structure into a new file in ./feedback/ for each submission.\n" +
-    "# Fill in the points and comments for each criterion based on your assessment.\n" +
-    "---\n" +
-    "rubric_assessment:\n" +
+  echo "Formatting rubric to Markdown..."
+  # jq filter to format the rubric into Markdown with IDs, descriptions, and ratings tables
+  jq_rubric_filter='
+    "# Rubric: " + (.rubric_settings.title // "Assignment Rubric") + " (" + (.rubric_settings.points_possible | tostring) + " Points)\n\n" +
     (
       .rubric | map(
-        # Use YAML syntax for keys (criterion ID) and nested objects
-        "  " + .id + ":\n" +
-        "    # Description: " + .description + "\n" +
-        "    # Max Points: " + (.points | tostring) + "\n" +
-        "    points: 0 # TODO: Enter score here\n" +
-        "    comments: \"\" # TODO: Enter comments here (optional)\n"
-      ) | join("\n")
-    ) + "\n\n" +
-    "# Optional overall comment for the submission\n" +
-    "submission_comment: \"\" # TODO: Enter overall comment here (optional)\n"
-  '
-  # The jq filter itself outputs text that *is* YAML.
-  echo "${api_response}" | jq -r "${jq_rubric_yaml_filter}" > "${RUBRIC_FILE}" || {
-    echo "Error: jq failed to format the rubric YAML template." >&2
-    exit 1
-  }
-  echo "Rubric YAML template saved to ${RUBRIC_FILE}"
-fi
-
-# The rest of the script remains largely the same for extracting description
-
-echo "Done."
-exit 0
-        (
-          .ratings | map(
-            "| " + .description + " | " + (.points | tostring) + " | " + (.long_description // "") + " |"
-          ) | join("\n")
-        ) + "\n" # Add newline after table
-      ) | join("\n") # Join criteria sections with a newline
+        # Section for each criterion including ID, Description, and Max Points
+        "## Criterion: [" + .id + "] " + .description + " (" + (.points | tostring) + " Points)\n\n" +
+        # Add long description if available
+        (.long_description | if . and . != "" then "> " + . + "\n\n" else "" end) +
+        # Add ratings table if ratings exist
+        (if .ratings? and (.ratings | length > 0) then
+          "| Rating | Points | Description |\n" +
+          "|---|---|---|\n" +
+          (
+            .ratings | map(
+              # Ensure descriptions are formatted reasonably for Markdown table cell
+              # (Replace pipes, newlines; basic escaping - might need refinement)
+              "| " + (.description | gsub("\\|";"\\|") | gsub("\n"; " ")) +
+              " | " + (.points | tostring) +
+              " | " + ((.long_description // "") | gsub("\\|";"\\|") | gsub("\n"; " ")) + " |"
+            ) | join("\n")
+          ) + "\n" # Newline after ratings table
+        else
+           "# No specific ratings defined for this criterion.\n" # Indicate if no ratings
+        end)
+      ) | join("\n---\n\n") # Join criteria sections with a divider
     )
   '
+  # Generate the Markdown rubric file
   echo "${api_response}" | jq -r "${jq_rubric_filter}" > "${RUBRIC_FILE}" || {
-    echo "Error: jq failed to format the rubric." >&2
+    echo "Error: jq failed to format the rubric Markdown." >&2
     exit 1
   }
-   echo "Rubric saved to ${RUBRIC_FILE}"
+  echo "Rubric Markdown saved to ${RUBRIC_FILE}"
 fi
 
-
+# Removed redundant jq filter and logic from previous state
 echo "Done."
 exit 0
