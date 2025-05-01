@@ -42,7 +42,7 @@ You will need to set up your own API keys for the Canvas API in order to pull as
 
 ```sh
 export CANVAS_API_KEY="your_canvas_api_key"
-export CANVAS_BASE_URL="https://your_canvas_instance.instructure.com/api/v1"
+export CANVAS_BASE_URL="https://your_canvas_instance.instructure.com
 ```
 
 The course and assignment ids are set using flags in the `acquire.sh` script. You can find the course and assignment IDs in the Canvas web interface. 
@@ -67,10 +67,12 @@ The structure of this flake repository (containing the templates and core script
 │   ├── pull.sh       # Pull assignment instructions and rubric from Canvas
 │   ├── acquire.sh    # Acquire Canvas submissions
 │   ├── prepare.sh    # Prepare files for processing (PDF -> PNG --> MD, DOCX -> MD, etc.)
-│   └── assess.sh     # Run the pre-assessment using llm
+│   ├── assess.sh     # Run the pre-assessment using llm
+│   ├── reformat.sh   # Reformat the reviewed pre-assessment as YAML
+│   └── submit.sh     # Submit the final feedback and score(s) to Canvas 
 └── templates/        # Project templates
     └── default/      # Default template for new projects 
-       ├── docs/      # Placeholder for assignment/rubric markdown
+       ├── docs/      # Placeholder for assignment/prompt/rubric markdown
        ├── flake.nix  # Template-specific flake part (if needed)
        └── ...
 ```
@@ -81,19 +83,24 @@ Description of the scripts:
 - `acquire.sh`: This script pulls Canvas submissions using the Canvas API. It requires the `CANVAS_API_KEY` and `CANVAS_BASE_URL` environment variables to be set and then the `-c, --course` and `-a, --assignment` flags to specify the course and assignment IDs. It will create a directory for the assignment `./submissions/` and download the submissions into it.
 - `prepare.sh`: This script processes the files in the `./submissions/` directory. It converts scanned PDFs to PNG images and extracts text from them into Markdown format and converts DOCX, HTML, or TXT files to Markdown format. The processed files are saved in the `./assignments/` directory.
 - `assess.sh`: This script runs the pre-assessment using the `llm` package. It takes the processed files from the `./assignments/` directory and applies the pre-assessment according to the assignment instructions, rubric, and other necessary context. The results are saved in the `./assessments/` directory.
+- `reformat.sh`: This script reformats the pre-assessment results into a YAML format that can be used for submission to Canvas. It takes the results from the `./assessments/` directory and reformats them into a YAML file adding it to the `./feedback/` directory. 
+- `submit.sh`: This script submits the final feedback and score(s) to Canvas using the Canvas API. It reads the relevant IDs from the file name from the `acquire.sh` script and the feedback from the `./feedback/` directory. It requires the `CANVAS_API_KEY` and `CANVAS_BASE_URL` environment variables to be set.
 
 When you initialize a project using `nix flake init -t ...`, the contents of the template will be copied into your new project directory. The core scripts from the `scripts/` directory are made available within the Nix development environment provided by the `flake.nix`.
 
 ## Dependencies
 
 The Nix flake (`flake.nix`) manages all necessary dependencies, including:
-- `bash`, `curl`, `jq` (Core utilities)
-- `imagemagick`, `pandoc` (File conversion)
-- `python3` with the `llm` package and related plugins (e.g., `llm-gemini`, `llm-openai`, `llm-anthropic`, `llm-ollama`) for text extraction and assessment.
+- Core utilities: `bash` (implicitly), `coreutils`, `curl`, `gnugrep`, `gnused`, `jq`
+- File conversion: `imagemagick`, `pandoc`
+- Data transformation: `yq-go`
+- Python environment: `python3` with the `llm` package and the following plugins: `llm-gemini`, `llm-openai-plugin`, `llm-ollama`, `llm-anthropic` for text extraction and assessment.
 
 ## TODOS
 
 - [x] Add capability to retrieve assignment instructions and rubric from Canvas
-- [ ] Add steps to review and finalize the assessment feedback
-- [ ] Add functionality to send the final feedback and score(s) to Canvas
-
+- [x] Add steps to review and finalize the assessment feedback
+- [x] Add functionality to send the final feedback and score(s) to Canvas
+- [ ] Add support for a TUI interface to interact with the assessment process?
+- [ ] Add support for a web interface to interact with the assessment process? 
+- [ ] Add support for a GUI interface to interact with the assessment process? 
