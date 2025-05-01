@@ -62,6 +62,10 @@ if [[ ! -f "$rubric_file" ]]; then
   echo "Error: Rubric file not found: '$rubric_file'" >&2
   exit 1
 fi
+if [[ ! -f "$prompt_file" ]]; then # Check for the specific instructions file
+    echo "Error: Specific Prompt file not found: '$prompt_file'"
+    exit 1
+fi
 
 
 # Create output directory
@@ -72,11 +76,30 @@ mkdir -p "$assessments_dir"
 
 # Define the generic prompt for the LLM
 read -r -d '' prompt << EOM
-You are tasked with assessing a student's submission based on the provided materials: assignment description, rubric, specific instructions, and the student's work.
+You are an AI assistant tasked with generating a PRELIMINARY ASSESSMENT of a student's submission to assist a human reviewer.
 
-Follow the specific instructions provided to structure and formulate your assessment. Ensure your response adheres to the requested format and tone. Use the rubric criteria to guide your evaluation and provide feedback as directed. Address the student directly using 'you' when providing qualitative feedback.
+**Input Materials Context:**
+1.  Assignment Description (`assignment.md`): Explains the assignment goals.
+2.  Rubric Definition (`rubric.yaml`): Lists criteria with IDs, descriptions, and max points. Use THESE IDs.
+3.  Assessment Guidance (`prompt.md`): Provides persona (e.g., TA role), course/student context, desired tone, and specific focus areas for the content of your assessment.
+4.  Student's Submission (Final Input Text): The student's work to assess.
 
-Please use the following assignment description, rubric, specific instructions, and student submission to generate your response.
+**Required Output Format:**
+Your entire response MUST consist ONLY of the following two parts in Markdown, with NO other text, explanations, greetings, or summaries:
+
+1.  **Rubric Assessment Table:**
+    *   Start with the EXACT header row: `| Criterion ID | Points | Comments |`
+    *   Follow with the separator row: `|---|---|---|`
+    *   Include one row for EACH criterion ID listed in the `rubric.yaml`.
+    *   **Criterion ID column:** MUST contain the specific ID from the `rubric.yaml`.
+    *   **Points column:** MUST contain ONLY the suggested numerical score for that criterion.
+    *   **Comments column:** MUST contain your brief justification/commentary (in English) for the suggested score. Reference the student's work where appropriate. Consult `prompt.md` for guidance on tone and focus for these comments.
+
+2.  **Submission Comments Section:**
+    *   Start this section with the EXACT heading: `## Submission comments`
+    *   Below the heading, provide overall qualitative feedback (in English) directly addressing the student ('you'). Consult `prompt.md` for guidance on tone, focus (e.g., strengths, areas for improvement), and context (e.g., course level).
+
+Adhere STRICTLY to this two-part format.
 EOM
 
 echo "Starting assessment of files in '$assignments_dir'..."
