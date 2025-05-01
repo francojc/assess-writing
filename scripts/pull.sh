@@ -139,7 +139,8 @@ else
     "# Rubric: " + (.rubric_settings.title // "Assignment Rubric") + " (" + (.rubric_settings.points_possible | tostring) + " Points)\n\n" +
     (
       .rubric | map(
-        "### " + .description + " (" + (.points | tostring) + " Points)\n" +
+        # Include the criterion ID in the heading
+        "### [" + .id + "] " + .description + " (" + (.points | tostring) + " Points)\n" +
         (.long_description | if . and . != "" then "> " + . + "\n" else "" end) + "\n" +
         "| Rating | Points | Description |\n" +
         "| :----- | :----- | :---------- |\n" +
