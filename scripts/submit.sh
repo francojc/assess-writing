@@ -8,7 +8,7 @@ IFS=$'\n\t'
 
 # --- Default values ---
 FEEDBACK_DIR="./feedback" # Default directory for finalized feedback YAML files
-DRY_RUN=false           # Flag to control dry-run mode
+DRY_RUN=false             # Flag to control dry-run mode
 
 # --- Usage Function ---
 usage() {

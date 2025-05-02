@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Pulls assignment description and rubric from Canvas API and saves them as Markdown.
+
 # Strict mode
 set -euo pipefail
 IFS=$'\n\t'

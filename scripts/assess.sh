@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Assesses student assignment markdown files in ./assignments/ using LLM.
 
 set -uo pipefail # Exit on unset variables and pipeline errors
