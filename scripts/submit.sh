@@ -2,8 +2,9 @@
 
 # Submits feedback (rubric assessments and comments) from YAML files to Canvas.
 
-# Strict mode
-set -euo pipefail
+# Strict mode (set -e temporarily removed for debugging curl issues)
+set -uo pipefail
+# set -e # Temporarily disabled
 IFS=$'\n\t'
 
 # --- Default values ---
@@ -125,24 +126,31 @@ while IFS= read -r -d $'\0' feedback_file; do
       echo "  Warning: Could not reliably extract UserID, CourseID, AssignmentID, or SubmissionID from filename '$filename'. Skipping." >&2
       echo "           Expected format: LastName_UserID_CourseID_AssignmentID_SubmissionID_Type.yaml" >&2
       ((skipped_count++))
+      ((skipped_count++))
       continue
   fi
+  echo "  DEBUG: Extracted IDs: User=$user_id, Course=$course_id, Assignment=$assignment_id, Submission=$submission_id"
 
   # -- Parse YAML Content ---
   echo "  Extracting rubric assessment and comment from YAML..."
   # Extract rubric_assessment as compact JSON. Ensure null if not present.
+  echo "  DEBUG: Attempting to parse '.rubric_assessment'..."
   rubric_json=$(yq '.rubric_assessment // null' "$feedback_file" -o=json -I=0) || {
     echo "  Error parsing .rubric_assessment from '$filename' with yq. Skipping." >&2
     ((error_count++))
+    ((error_count++))
     continue
   }
+  echo "  DEBUG: Parsed '.rubric_assessment' as JSON: $rubric_json"
 
   # Extract submission_comment as raw string. Ensure empty string if not present.
+  echo "  DEBUG: Attempting to parse '.submission_comment'..."
   submission_comment=$(yq '.submission_comment // ""' "$feedback_file" -r) || {
     echo "  Error parsing .submission_comment from '$filename' with yq. Skipping." >&2
     ((error_count++))
     continue
   }
+  echo "  DEBUG: Parsed '.submission_comment' as text: $submission_comment"
 
   # Check if we have anything to submit
   if [[ "$rubric_json" == "null" && -z "$submission_comment" ]]; then
@@ -194,8 +202,10 @@ while IFS= read -r -d $'\0' feedback_file; do
   fi
 
   # Join payload parts with '&'
+  echo "  DEBUG: Joining payload parts..."
   data_payload=$(printf "%s&" "${payload_parts[@]}")
   data_payload=${data_payload%&} # Remove trailing '&'
+  echo "  DEBUG: Final constructed data payload: $data_payload"
 
   # Check if payload is actually empty after processing (e.g., rubric_json was null and comment was empty)
   if [[ -z "$data_payload" ]]; then
@@ -244,6 +254,7 @@ while IFS= read -r -d $'\0' feedback_file; do
     ((submitted_count++)) # Count as "processed" in dry run
   else
     echo "  Submitting feedback for UserID: $user_id, SubmissionID: $submission_id..."
+    echo "  DEBUG: Executing curl command..." # Added trace message
     api_response=$(curl -sfSL -X PUT \
       -H "${AUTH_HEADER}" \
       -H "Content-Type: application/x-www-form-urlencoded" \
@@ -254,18 +265,26 @@ while IFS= read -r -d $'\0' feedback_file; do
     curl_exit_status=$?
     if [[ $curl_exit_status -eq 0 ]]; then
         # Check for potential API errors within the JSON response (even with 200 OK)
-       api_error=$(echo "$api_response" | jq -r '.errors[0].message // ""')
+       api_error=$(echo "$api_response" | jq -r '.errors[0].message // ""') # Try to extract primary error message
        if [[ -n "$api_error" ]]; then
            echo "  Error from Canvas API: $api_error for file '$filename'. Check API permissions and data format." >&2
+           echo "  DEBUG: Full API Response for error context: $api_response" # Show full response on error
            ((error_count++))
        else
+          # Check if the response is something other than expected JSON (e.g., HTML error page)
+          if ! echo "$api_response" | jq -e . >/dev/null 2>&1; then
+              echo "  Warning: API response was not valid JSON. Might indicate an issue (e.g., redirect, HTML error). Response:" >&2
+              echo "$api_response" >&2
+          fi
           echo "  Successfully submitted feedback for '$filename'."
+          echo "  DEBUG: API Response: $api_response" # Show response even on success
           ((submitted_count++))
        fi
     else
         echo "  Error: curl command failed with exit status $curl_exit_status for file '$filename'." >&2
-        echo "  API URL: $api_url" >&2
-        echo "  Curl Response/Error: $api_response" >&2 # Show captured curl output/error
+        echo "  DEBUG: API URL: $api_url" >&2
+        echo "  DEBUG: Failed Payload: $data_payload" # Show the payload that caused the failure
+        echo "  Curl Response/Error (stderr+stdout): $api_response" >&2 # Show captured curl output/error
         ((error_count++))
     fi
   fi

@@ -220,9 +220,10 @@ for input_md_file in "$SOURCE_DIR"/*.md; do
 
   # --- Convert JSON to YAML using yq ---
   echo "  Generating YAML file '$output_yaml_file'..."
-  echo ""
-  echo "$final_json" | yq -P '.' > "$output_yaml_file" || {
-      echo "  Error: Failed to convert JSON to YAML using yq for '$input_basename.md'. Skipping." >&2
+  # Use yq eval with '. style="double"' to force double quotes on all string scalars (keys and comments)
+  # The -P flag ensures pretty-printing (multiline comments become block literals which is ok).
+  echo "$final_json" | yq eval '. style="double"' -P > "$output_yaml_file" || {
+      echo "  Error: Failed to convert JSON to YAML using yq (forcing double quotes) for '$input_basename.md'. Skipping." >&2
       # Clean up potentially partial file
       rm -f "$output_yaml_file"
       ((error_count++))
