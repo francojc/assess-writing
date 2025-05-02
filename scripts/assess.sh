@@ -92,7 +92,7 @@ Your entire response MUST consist ONLY of the following two parts in Markdown, w
     *   Start with the EXACT header row: "| Criterion ID | Description | Points | Comments |"
     *   Follow with the separator row: "|---|---|---|---|"
     *   Include one row for EACH criterion found in the "rubric.md" (identified by its "[<Criterion ID>]" marker).
-    *   **Criterion ID column:** MUST contain the specific ID parsed from the "rubric.md" heading (e.g., "_1234").
+    *   **Criterion ID column:** MUST contain the specific ID parsed from the "rubric.md" heading (e.g., "1234").
     *   **Description column:** MUST contain the criterion description parsed from the "rubric.md" heading.
     *   **Points column:** MUST contain ONLY the suggested numerical score for that criterion.
     *   **Comments column:** MUST contain your brief justification/commentary (in English) for the suggested score. Reference the student's work where appropriate. Consult "prompt.md" for guidance on tone and focus for these comments.
