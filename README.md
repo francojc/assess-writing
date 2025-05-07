@@ -104,3 +104,8 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 - [ ] Add support for a TUI interface to interact with the assessment process?
 - [ ] Add support for a web interface to interact with the assessment process? 
 - [ ] Add support for a GUI interface to interact with the assessment process? 
+
+
+<!-- 
+INFO: Consider a multiple assessment process in which a lower-latency, model is used to evaluate the same assignment multiple times. Then, the final pre-assessment is the summary of the multiple assessments. This potentially allows for a more accurate assessment as any given assessment run may be biased in some way.
+-->
