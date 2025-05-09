@@ -40,6 +40,7 @@
           pkgs.gnused
           pkgs.imagemagick
           pkgs.jq
+          pkgs.just
           pkgs.pandoc
           pkgs.yq-go
           pythonEnv

@@ -1,0 +1,8 @@
+#!/usr/bin/env just
+
+# This justfile helps segment natural groupings of commands
+
+get-materials COURSE_ID='0' ASSIGNMENT_ID='0':
+    @pull.sh -c {{COURSE_ID}} -a {{ASSIGNMENT_ID}}
+    @acquire.sh -c {{COURSE_ID}} -a {{ASSIGNMENT_ID}}
+    @prepare.sh
