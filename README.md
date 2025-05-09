@@ -101,7 +101,7 @@ The Nix flake (`flake.nix`) manages all necessary dependencies, including:
 - [x] Add capability to retrieve assignment instructions and rubric from Canvas
 - [x] Add steps to review and finalize the assessment feedback
 - [x] Add functionality to send the final feedback and score(s) to Canvas
-- [ ] Add a .just file to manage script routines (e.g. `just get-materials: pull.sh acquire.sh prepare.sh`)
+- [-] Add a .just file to manage script routines (e.g. `just get-materials: pull.sh acquire.sh prepare.sh`)
 - [ ] Add support for a TUI interface to interact with the assessment process?
 - [ ] Add support for a web interface to interact with the assessment process?
 - [ ] Add support for a GUI interface to interact with the assessment process?
